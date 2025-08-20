@@ -1,0 +1,22 @@
+# FastAPI Backend Requirements
+fastapi>=0.104.0
+uvicorn>=0.24.0
+
+# Core AI Framework (your existing requirements)
+crewai>=0.148.0
+crewai-tools>=0.55.0
+
+# Data & Validation  
+pydantic>=2.11.0
+
+# AI & LLM
+openai>=1.97.0
+langchain>=0.3.26
+langchain-openai>=0.2.14
+langchain-community>=0.3.27
+
+# Environment
+python-dotenv>=1.1.0
+
+# Utilities
+requests>=2.32.0

@@ -1,0 +1,76 @@
+scenario_creation_task:
+  description: >
+    Create a realistic business scenario for sustainability messaging training based on the user's
+    profile, industry focus, and regional regulatory context. Search for current sustainability trends and 
+    real company examples in {user_industry} to make the scenario authentic and timely. Include: 
+    company background, product/service details, target audience, marketing objectives, and specific 
+    sustainability claims the company wants to communicate. Ensure the scenario is relevant to 
+    {user_industry} and incorporates {regional_regulations} compliance requirements for the {regulatory_region} market.
+    Focus on real regulatory challenges and enforcement patterns specific to {regulatory_region}.
+  expected_output: >
+    A detailed business scenario including: company profile, product/service description,
+    target market, marketing goals, preliminary sustainability claims, and regulatory context specific to {regulatory_region}.
+    Base the scenario on current market trends and real examples found through research.
+  agent: scenario_builder
+
+mistake_generation_task:
+  description: >
+    Based on the scenario provided, search for real examples of problematic sustainability 
+    messages and greenwashing cases in similar industries within the {regulatory_region} regulatory framework. 
+    Create 4-5 problematic sustainability messages that contain common greenwashing issues found in current 
+    market examples specific to {regulatory_region} enforcement patterns. For each problematic example, explain 
+    specifically WHY it's problematic under {regional_regulations}, what current regulations it violates, 
+    and what greenwashing patterns it demonstrates. Focus on real-world mistakes like vague claims, 
+    unsubstantiated superlatives, misleading scope, and future commitments without accountability. 
+    Use recent case studies and regulatory examples from {regulatory_region}.
+  expected_output: >
+    A list of 4-5 problematic sustainability messages based on real market examples from {regulatory_region}, 
+    with detailed explanations of why each is problematic under {regional_regulations}, specific regulatory 
+    violations, and greenwashing patterns identified. Include references to current {regulatory_region} 
+    directives, recent enforcement cases, and industry guidelines.
+  agent: mistake_illustrator
+  context:
+    - scenario_creation_task
+
+best_practice_transformation_task:
+  description: >
+    Transform each problematic message from the previous task into compliant, effective alternatives 
+    by researching current best practices and successful sustainability communications examples within 
+    the {regulatory_region} regulatory framework. Search for companies that have done sustainability 
+    messaging well in similar contexts under {regional_regulations}. Provide specific improvements 
+    that address the identified issues while maintaining marketing impact and ensuring compliance with 
+    {regulatory_region} standards. Explain the changes made and reference current best practices, recent 
+    regulatory updates, and industry standards that support the revised messaging in {regulatory_region}.
+  expected_output: >
+    For each problematic message, provide: the revised compliant version based on current {regulatory_region} 
+    best practices, explanation of changes made, current regulatory compliance notes for {regional_regulations}, 
+    and references to successful real-world examples from {regulatory_region}. Include recent case studies of 
+    effective sustainability communications compliant with {regulatory_region} standards.
+  agent: best_practice_coach
+  context:
+    - scenario_creation_task
+    - mistake_generation_task
+
+playbook_task:
+  description: >
+    Create a practical sustainability messaging playbook based on the training content and 
+    current communication best practices specific to {regulatory_region}. The playbook should serve as a 
+    hands-on resource for marketing teams operating under {regional_regulations} to craft credible, 
+    compliant, and effective sustainability claims. It should summarize key do's and don'ts for {regulatory_region}, 
+    outline common greenwashing patterns to avoid under {regional_regulations}, and provide a step-by-step 
+    framework for transforming claims into impactful messages that comply with {regulatory_region} standards. 
+    Include recent case study snapshots (good vs bad messaging) from {regulatory_region}, regulatory references 
+    specific to {regional_regulations}, and a compliance checklist tailored to {regulatory_region} requirements. 
+    Format the playbook in markdown so it can be easily shared or printed.
+  expected_output: >
+    A complete sustainability messaging playbook in markdown format including: do's and don'ts of messaging 
+    specific to {regulatory_region}, common greenwashing patterns under {regional_regulations}, a claim-to-proof 
+    framework tailored to {regulatory_region} requirements, case study snapshots from {regulatory_region}, and a 
+    compliance checklist for {regional_regulations}. Provide references to current {regulatory_region} regulations 
+    and real-world examples of successful sustainability communications. Structure the output so it can be directly 
+    used as a printable field guide by a Marketing Director operating in {regulatory_region}.
+  agent: playbook_creator
+  context:
+    - scenario_creation_task
+    - mistake_generation_task
+    - best_practice_transformation_task

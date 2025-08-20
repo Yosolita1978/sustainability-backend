@@ -1,0 +1,41 @@
+USER_PROFILE:
+Name: Jane Doe
+Role: Marketing Director
+Company_Type: Small Marketing/Communications Agency
+Location: Europe (EU regulations applicable)
+Industry_Focus: Multi-client agency serving various industries
+
+SUSTAINABILITY_TRAINING_PREFERENCES:
+Experience_Level: Intermediate
+Primary_Interest: Building team capability in sustainability communications
+Company_Size: Small agency (10-25 employees)
+Target_Audience_for_Messages: Diverse client base across industries
+Training_Goal: Capacitate team members on sustainability messaging compliance
+
+LEARNING_OBJECTIVES:
+- Train agency staff on EU sustainability regulations and guidelines
+- Develop internal expertise in green communications
+- Avoid greenwashing risks for clients across different sectors
+- Build standardized processes for sustainability message review
+- Create training materials for team workshops
+
+SPECIFIC_FOCUS_AREAS:
+- EU Green Claims Directive compliance
+- CSRD (Corporate Sustainability Reporting Directive) communications
+- Multi-industry sustainability messaging (fashion, food, tech, finance)
+- Client education on sustainability communication risks
+- Agency liability and due diligence in green claims
+
+PREFERRED_SCENARIOS:
+- Fashion brand launch with sustainability claims
+- Food company organic/eco-friendly product messaging  
+- Tech startup environmental impact communications
+- Financial services ESG investment marketing
+- Real estate green building certifications
+
+ASSESSMENT_PREFERENCES:
+Difficulty_Level: Intermediate to Advanced
+Feedback_Style: Detailed with EU regulatory references and industry best practices
+Practice_Frequency: Multiple scenarios per training session
+Progress_Tracking: Yes, for team capability development
+Focus: Practical application for client work
