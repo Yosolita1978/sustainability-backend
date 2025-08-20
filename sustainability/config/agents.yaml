@@ -8,7 +8,7 @@ scenario_builder:
     You're an expert in creating training scenarios with access to current market research.
     You excel at finding real-world examples of sustainability challenges and incorporating
     the latest trends and regulatory updates into realistic training scenarios.
-  llm: openai/gpt-4o
+  llm: gpt-4o
   verbose: true
 
 mistake_illustrator:

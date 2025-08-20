@@ -19,12 +19,19 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import uvicorn
 
-# Suppress specific warnings
+# Suppress specific warnings from dependencies until they update to Pydantic v2
+# Note: Our code uses Pydantic v2 correctly, but CrewAI/LangChain still use v1 syntax
 warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
-warnings.filterwarnings("ignore", category=DeprecationWarning, module="pydantic._internal._config")
+warnings.filterwarnings(
+    "ignore", 
+    category=DeprecationWarning,
+    message="Support for class-based `config` is deprecated",
+    module="pydantic._internal._config"
+)
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="websockets.legacy")
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="uvicorn.protocols.websockets.websockets_impl")
+
 
 # Add sustainability module to path
 current_dir = Path(__file__).parent
@@ -511,5 +518,6 @@ if __name__ == "__main__":
         host="0.0.0.0",
         port=port,
         reload=True if not os.getenv("PORT") else False,  # Only reload in development
-        log_level="info"
+        log_level="info",
+        ws="none"
     )

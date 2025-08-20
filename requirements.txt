@@ -2,17 +2,17 @@
 fastapi>=0.104.0
 uvicorn>=0.24.0
 
-# Core AI Framework (your existing requirements)
-crewai>=0.148.0
-crewai-tools>=0.55.0
+# Core AI Framework - Compatible versions
+crewai>=0.148.0,<0.166.0
+crewai-tools>=0.55.0,<0.63.0
 
 # Data & Validation  
 pydantic>=2.11.0
 
-# AI & LLM
-openai>=1.97.0
+# AI & LLM - Compatible versions (key change here)
+openai>=1.97.0,<1.100.0
 langchain>=0.3.26
-langchain-openai>=0.2.14
+langchain-openai>=0.2.14,<0.3.0
 langchain-community>=0.3.27
 
 # Environment
