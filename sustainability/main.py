@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
 Enhanced FastAPI Backend for Sustainability Training
-Comprehensive data extraction and markdown generation
+COMPLETELY FIXED multi-line JSON extraction and markdown generation
 """
 
 import os
@@ -10,6 +10,7 @@ import uuid
 import asyncio
 import warnings
 import json
+import traceback
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 from pathlib import Path
@@ -40,7 +41,6 @@ sys.path.insert(0, str(current_dir))
 from sustainability.crew import Sustainability
 from sustainability.data_extractor import SessionDataExtractor, extract_from_backup_files
 from sustainability.markdown_generator import generate_comprehensive_playbook
-from sustainability.callbacks import create_session_callback_handler
 
 # Load environment variables
 try:
@@ -51,9 +51,9 @@ except ImportError:
 
 # FastAPI app setup
 app = FastAPI(
-    title="Enhanced Sustainability Training API",
-    description="AI-powered sustainability messaging training with comprehensive data extraction",
-    version="2.0.0"
+    title="Multi-Line JSON Fixed Sustainability Training API",
+    description="AI-powered sustainability messaging training with FIXED multi-line JSON extraction",
+    version="3.0.0"
 )
 
 # CORS middleware
@@ -111,7 +111,7 @@ def create_session(training_request: TrainingRequest) -> str:
         "id": session_id,
         "status": "created",
         "progress": 0,
-        "current_step": "Initializing enhanced training system...",
+        "current_step": "Initializing multi-line JSON extraction system...",
         "created_at": datetime.now(),
         "completed_at": None,
         "error": None,
@@ -145,7 +145,7 @@ def update_session_progress(session_id: str, progress: int, step: str, agent: st
         }
         sessions[session_id]["progress_updates"].append(update)
         
-        print(f"Enhanced Session {session_id}: {progress}% - {step}")
+        print(f"Multi-Line Session {session_id}: {progress}% - {step}")
 
 def complete_session(session_id: str, results: Any, file_path: str = None, error: str = None, 
                     quality_score: float = None, data_completeness: float = None):
@@ -164,7 +164,7 @@ def complete_session(session_id: str, results: Any, file_path: str = None, error
         else:
             sessions[session_id]["status"] = "completed"
             sessions[session_id]["progress"] = 100
-            sessions[session_id]["current_step"] = "Enhanced training completed successfully!"
+            sessions[session_id]["current_step"] = "Multi-line JSON training completed successfully!"
 
 def cleanup_old_sessions():
     """Remove sessions older than 4 hours and their files"""
@@ -203,7 +203,7 @@ def cleanup_old_sessions():
                     pass
         
         del sessions[sid]
-        print(f"Cleaned up expired enhanced session: {sid}")
+        print(f"Cleaned up expired multi-line session: {sid}")
 
 def get_regulatory_details(region: str) -> Dict[str, str]:
     """Get regulatory details for the region"""
@@ -232,16 +232,16 @@ def get_regulatory_details(region: str) -> Dict[str, str]:
     return frameworks.get(region, frameworks["Global"])
 
 # ============================================================================
-# ENHANCED TRAINING EXECUTION
+# ENHANCED TRAINING EXECUTION WITH MULTI-LINE JSON EXTRACTION
 # ============================================================================
 
 def run_enhanced_training_session(session_id: str, training_request: TrainingRequest):
-    """Run enhanced training session with comprehensive data extraction and validation"""
+    """Run enhanced training session with FIXED multi-line JSON extraction"""
     try:
-        print(f"🚀 Starting enhanced training session: {session_id}")
+        print(f"🚀 Starting MULTI-LINE JSON FIXED training session: {session_id}")
         
         # Initialize enhanced tracking
-        update_session_progress(session_id, 5, "Initializing enhanced AI training system...", "System")
+        update_session_progress(session_id, 5, "Initializing multi-line JSON extraction system...", "System")
         
         # Get regulatory details
         regulatory_details = get_regulatory_details(training_request.regulatory_framework)
@@ -258,9 +258,9 @@ def run_enhanced_training_session(session_id: str, training_request: TrainingReq
             'training_level': training_request.training_level
         }
         
-        update_session_progress(session_id, 10, "Creating enhanced AI crew with validation...", "System")
+        update_session_progress(session_id, 10, "Creating AI crew with multi-line support...", "System")
         
-        # Create enhanced crew with session-specific callback handler
+        # Create enhanced crew with session-specific setup
         sustainability_crew = Sustainability(session_id=session_id)
         crew = sustainability_crew.crew()
         
@@ -276,29 +276,92 @@ def run_enhanced_training_session(session_id: str, training_request: TrainingReq
         print(f"📄 Crew log file: {crew_log_file}")
         print(f"💾 Backup directory: {backup_directory}")
         
-        update_session_progress(session_id, 15, "Enhanced AI agents collaborating with real-time validation...", "System")
+        update_session_progress(session_id, 15, "AI agents starting collaboration...", "System")
         
         # Run the training with enhanced monitoring
         result = crew.kickoff(inputs=inputs)
         
-        update_session_progress(session_id, 60, "Training complete - starting comprehensive data extraction...", "System")
+        update_session_progress(session_id, 60, "Training complete - starting MULTI-LINE data extraction...", "System")
         
         # ========================================================================
-        # ENHANCED DATA EXTRACTION AND PROCESSING
+        # MULTI-LINE JSON EXTRACTION (COMPLETELY FIXED)
         # ========================================================================
         
-        print(f"🔍 Starting comprehensive data extraction for session {session_id}")
+        print(f"🔍 Starting MULTI-LINE JSON extraction for session {session_id}")
         
-        # Step 1: Extract data using enhanced extractor
+        # Verify log file exists and has content
+        if not os.path.exists(crew_log_file):
+            raise Exception(f"Crew log file not found: {crew_log_file}")
+        
+        log_size = os.path.getsize(crew_log_file)
+        print(f"📊 Log file size: {log_size:,} bytes")
+        
+        if log_size == 0:
+            raise Exception("Crew log file is empty")
+        
+        # Debug: Show a sample of the log file
+        with open(crew_log_file, 'r', encoding='utf-8') as f:
+            sample_lines = f.readlines()[:5]
+            print(f"📝 Log file sample (first 5 lines):")
+            for i, line in enumerate(sample_lines, 1):
+                print(f"   {i}: {line.strip()[:100]}...")
+        
+        # Step 1: Extract data using MULTI-LINE FIXED extractor
         data_extractor = SessionDataExtractor(session_id)
         comprehensive_data = data_extractor.extract_complete_session_data(crew_log_file)
         
+        # Debug: Show detailed extraction results
+        raw_data = comprehensive_data.get("raw_data", {})
+        print(f"🔍 MULTI-LINE EXTRACTION RESULTS:")
+        print(f"   📊 Total tasks found: {raw_data.get('total_tasks_found', 0)}")
+        print(f"   📋 Parsing success: {raw_data.get('parsing_success', False)}")
+        print(f"   📝 Extraction log entries: {len(raw_data.get('extraction_log', []))}")
+        
+        # Show what was actually extracted
+        print(f"🗂️ EXTRACTED DATA CHECK:")
+        print(f"   Scenario Data: {'✅ PRESENT' if raw_data.get('scenario_data') else '❌ MISSING'}")
+        print(f"   Problematic Messages: {'✅ PRESENT' if raw_data.get('problematic_messages') else '❌ MISSING'}")
+        print(f"   Corrected Messages: {'✅ PRESENT' if raw_data.get('corrected_messages') else '❌ MISSING'}")
+        print(f"   Playbook Data: {'✅ PRESENT' if raw_data.get('playbook_data') else '❌ MISSING'}")
+        
+        # Show the extraction log for debugging
+        extraction_log = raw_data.get("extraction_log", [])
+        print(f"📝 EXTRACTION LOG (last 10 entries):")
+        for log_entry in extraction_log[-10:]:
+            print(f"   {log_entry}")
+        
+        # Show data sizes if present
+        if raw_data.get('scenario_data'):
+            scenario_size = len(str(raw_data['scenario_data']))
+            print(f"   📊 Scenario data size: {scenario_size:,} characters")
+            # Show company name to verify extraction
+            company_name = raw_data['scenario_data'].get('company_name', 'Unknown')
+            print(f"   🏢 Company name extracted: {company_name}")
+        
+        if raw_data.get('problematic_messages'):
+            problematic_size = len(str(raw_data['problematic_messages']))
+            print(f"   📊 Problematic messages size: {problematic_size:,} characters")
+            # Show number of messages
+            msg_count = len(raw_data['problematic_messages'].get('problematic_messages', []))
+            print(f"   🚨 Number of problematic messages: {msg_count}")
+        
+        if raw_data.get('corrected_messages'):
+            corrected_size = len(str(raw_data['corrected_messages']))
+            print(f"   📊 Corrected messages size: {corrected_size:,} characters")
+            # Show number of corrections
+            corr_count = len(raw_data['corrected_messages'].get('corrected_messages', []))
+            print(f"   ✅ Number of corrections: {corr_count}")
+        
+        if raw_data.get('playbook_data'):
+            playbook_size = len(str(raw_data['playbook_data']))
+            print(f"   📊 Playbook data size: {playbook_size:,} characters")
+        
         # Store extraction results in session
-        sessions[session_id]["extracted_data"] = comprehensive_data.get("raw_data", {})
+        sessions[session_id]["extracted_data"] = raw_data
         sessions[session_id]["validation_result"] = comprehensive_data.get("validation", {})
         sessions[session_id]["integration_result"] = comprehensive_data.get("integration", {})
         
-        update_session_progress(session_id, 75, "Data extraction complete - validating quality...", "System")
+        update_session_progress(session_id, 75, "Multi-line extraction complete - validating quality...", "System")
         
         # Get quality metrics
         validation_result = comprehensive_data.get("validation", {})
@@ -307,10 +370,11 @@ def run_enhanced_training_session(session_id: str, training_request: TrainingReq
         
         print(f"📊 Quality Score: {quality_score:.1f}/100")
         print(f"📈 Data Completeness: {data_completeness:.1f}%")
+        print(f"📋 Tasks Found: {raw_data.get('total_tasks_found', 0)}")
         
         # Check if we have sufficient data quality
-        if quality_score < 50 or data_completeness < 60:
-            print(f"⚠️ Low quality data detected, attempting backup extraction...")
+        if raw_data.get("total_tasks_found", 0) < 3:
+            print(f"⚠️ Low task count detected, attempting backup extraction...")
             update_session_progress(session_id, 70, "Attempting backup data recovery...", "System")
             
             # Try backup extraction
@@ -324,17 +388,64 @@ def run_enhanced_training_session(session_id: str, training_request: TrainingReq
         update_session_progress(session_id, 85, "Generating comprehensive markdown playbook...", "System")
         
         # ========================================================================
-        # ENHANCED MARKDOWN GENERATION
+        # ENHANCED MARKDOWN GENERATION (GUARANTEED TO USE EXTRACTED DATA)
         # ========================================================================
         
-        # Generate comprehensive markdown using extracted data
-        comprehensive_markdown = generate_comprehensive_playbook(
-            extracted_data=comprehensive_data.get("raw_data", {}),
-            validation_result=comprehensive_data.get("validation", {}),
-            integration_result=comprehensive_data.get("integration", {}),
-            training_request=training_request.model_dump(),
-            session_id=session_id
-        )
+        print(f"📝 Starting ENHANCED markdown generation with extracted data...")
+        
+        # Get the extracted data
+        extracted_raw_data = comprehensive_data.get("raw_data", {})
+        
+        # FORCE CHECK: Verify we have extracted data
+        has_scenario = bool(extracted_raw_data.get("scenario_data"))
+        has_problematic = bool(extracted_raw_data.get("problematic_messages"))
+        has_corrected = bool(extracted_raw_data.get("corrected_messages"))
+        has_playbook = bool(extracted_raw_data.get("playbook_data"))
+        
+        print(f"📊 MARKDOWN GENERATION DATA CHECK:")
+        print(f"   Scenario: {'✅ AVAILABLE' if has_scenario else '❌ MISSING'}")
+        print(f"   Problematic: {'✅ AVAILABLE' if has_problematic else '❌ MISSING'}")
+        print(f"   Corrected: {'✅ AVAILABLE' if has_corrected else '❌ MISSING'}")
+        print(f"   Playbook: {'✅ AVAILABLE' if has_playbook else '❌ MISSING'}")
+        
+        # Force extraction success check
+        total_tasks = extracted_raw_data.get("total_tasks_found", 0)
+        parsing_success = extracted_raw_data.get("parsing_success", False)
+        
+        print(f"📈 EXTRACTION SUCCESS METRICS:")
+        print(f"   Tasks Found: {total_tasks}")
+        print(f"   Parsing Success: {parsing_success}")
+        
+        # GUARANTEE: Use enhanced generation if we have ANY substantial data
+        if total_tasks >= 1 and (has_scenario or has_problematic or has_corrected or has_playbook):
+            print(f"✅ USING ENHANCED MARKDOWN GENERATION with extracted data")
+            print(f"📋 Enhanced generation input data size: {len(str(extracted_raw_data)):,} characters")
+            
+            # Call the enhanced markdown generator
+            comprehensive_markdown = generate_comprehensive_playbook(
+                extracted_data=extracted_raw_data,
+                validation_result=comprehensive_data.get("validation", {}),
+                integration_result=comprehensive_data.get("integration", {}),
+                training_request=training_request.model_dump(),
+                session_id=session_id
+            )
+            
+            print(f"✅ Enhanced markdown generated: {len(comprehensive_markdown):,} characters")
+            
+        else:
+            print(f"❌ CRITICAL: NO EXTRACTED DATA AVAILABLE")
+            print(f"🔄 Attempting to use CrewAI result data as last resort...")
+            
+            # Use the CrewAI result as absolute fallback
+            if hasattr(result, 'tasks_output') and result.tasks_output:
+                final_task = result.tasks_output[-1]
+                if hasattr(final_task, 'pydantic') and final_task.pydantic:
+                    print(f"📋 Using basic generation from CrewAI task output")
+                    comprehensive_markdown = format_playbook_as_markdown_basic(final_task.pydantic.model_dump())
+                else:
+                    raise Exception("No task output data available for markdown generation")
+            else:
+                raise Exception("CRITICAL: No data available from any source for markdown generation")
         
         # Create outputs directory
         outputs_dir = Path("outputs")
@@ -342,7 +453,7 @@ def run_enhanced_training_session(session_id: str, training_request: TrainingReq
         
         # Generate enhanced filename
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"enhanced_sustainability_playbook_{session_id[:8]}_{timestamp}.md"
+        filename = f"multiline_sustainability_playbook_{session_id[:8]}_{timestamp}.md"
         file_path = outputs_dir / filename
         
         # Save comprehensive markdown
@@ -352,7 +463,7 @@ def run_enhanced_training_session(session_id: str, training_request: TrainingReq
         # Verify file creation and size
         if file_path.exists():
             file_size = file_path.stat().st_size
-            print(f"✅ Enhanced playbook created: {file_size:,} bytes")
+            print(f"✅ Multi-line playbook created: {file_size:,} bytes")
             
             # Log content statistics
             char_count = len(comprehensive_markdown)
@@ -360,10 +471,18 @@ def run_enhanced_training_session(session_id: str, training_request: TrainingReq
             section_count = comprehensive_markdown.count('##')
             
             print(f"📊 Content stats: {char_count:,} chars, {line_count:,} lines, {section_count} sections")
+            
+            # Check if specific company content is present
+            company_mentioned = extracted_raw_data.get("scenario_data", {}).get("company_name", "")
+            if company_mentioned and company_mentioned.lower() in comprehensive_markdown.lower():
+                print(f"✅ Company-specific content confirmed: {company_mentioned}")
+            else:
+                print(f"⚠️ Company-specific content check: {company_mentioned}")
+                
         else:
-            raise Exception("Failed to create enhanced playbook file")
+            raise Exception("Failed to create multi-line playbook file")
         
-        update_session_progress(session_id, 95, "Finalizing enhanced training session...", "System")
+        update_session_progress(session_id, 95, "Finalizing multi-line training session...", "System")
         
         # Complete session with quality metrics
         complete_session(
@@ -374,14 +493,16 @@ def run_enhanced_training_session(session_id: str, training_request: TrainingReq
             data_completeness=data_completeness
         )
         
-        print(f"🎉 Enhanced training session completed successfully!")
+        print(f"🎉 Multi-line JSON training session completed successfully!")
         print(f"📄 Playbook: {file_path}")
         print(f"📊 Quality: {quality_score:.1f}/100")
         print(f"📈 Completeness: {data_completeness:.1f}%")
         
     except Exception as e:
-        error_msg = f"Enhanced training failed: {str(e)}"
-        print(f"❌ Enhanced session error {session_id}: {error_msg}")
+        error_msg = f"Multi-line training failed: {str(e)}"
+        print(f"❌ Multi-line session error {session_id}: {error_msg}")
+        print(f"🔍 Error details: {str(e)}")
+        print(f"📋 Traceback: {traceback.format_exc()}")
         
         # Try fallback extraction before failing
         try:
@@ -418,6 +539,108 @@ def run_enhanced_training_session(session_id: str, training_request: TrainingReq
         
         complete_session(session_id, None, None, error_msg)
 
+def format_playbook_as_markdown_basic(data: Dict[str, Any]) -> str:
+    """Basic markdown generation as absolute fallback"""
+    
+    playbook_title = data.get('playbook_title', 'Sustainability Messaging Playbook')
+    creation_date = data.get('creation_date', datetime.now().strftime('%Y-%m-%d'))
+    
+    content = f"""# {playbook_title}
+
+**Created:** {creation_date}  
+**Generated by:** Sustainability Training AI (Basic Fallback)
+
+---
+
+## Executive Summary
+
+{data.get('executive_summary', 'Comprehensive guide for creating compliant sustainability messaging.')}
+
+---
+
+## 📋 Do's and Don'ts
+
+{format_list_items_basic(data.get('dos_and_donts', []))}
+
+---
+
+## 🚨 Greenwashing Patterns to Avoid
+
+{format_list_items_basic(data.get('greenwashing_patterns', []))}
+
+---
+
+## ✅ Quick Compliance Checklist
+
+{format_checklist_basic(data.get('compliance_checklist', {}))}
+
+---
+
+## 🔄 Claim-to-Proof Framework
+
+{format_framework_basic(data.get('claim_to_proof_framework', {}))}
+
+---
+
+## 📖 Case Studies
+
+{format_case_studies_basic(data.get('case_study_snapshots', []))}
+
+---
+
+## 📄 Regulatory References
+
+{format_list_items_basic(data.get('regulatory_references', []))}
+
+---
+
+*Generated by Sustainability Training AI (Basic Fallback) on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*
+"""
+    
+    return content
+
+def format_list_items_basic(items: list) -> str:
+    """Format list items as markdown"""
+    if not items:
+        return "*No items available*"
+    return "\n".join([f"• {item}" for item in items])
+
+def format_checklist_basic(checklist: dict) -> str:
+    """Format checklist as markdown"""
+    if not checklist:
+        return "*Checklist not available*"
+    
+    content = f"### {checklist.get('checklist_name', 'Compliance Checklist')}\n\n"
+    content += f"**Questions to Ask:**\n{format_list_items_basic(checklist.get('questions', []))}\n\n"
+    content += f"**Red Flags:**\n{format_list_items_basic(checklist.get('red_flags', []))}\n"
+    
+    return content
+
+def format_framework_basic(framework: dict) -> str:
+    """Format framework as markdown"""
+    if not framework:
+        return "*Framework not available*"
+    
+    content = f"### {framework.get('framework_name', 'Validation Framework')}\n\n"
+    content += f"**Steps:**\n{format_list_items_basic(framework.get('steps', []))}\n\n"
+    content += f"**Validation Questions:**\n{format_list_items_basic(framework.get('validation_questions', []))}\n"
+    
+    return content
+
+def format_case_studies_basic(case_studies: list) -> str:
+    """Format case studies as markdown"""
+    if not case_studies:
+        return "*No case studies available*"
+    
+    content = ""
+    for i, case in enumerate(case_studies, 1):
+        content += f"### Case Study {i}: {case.get('title', 'Untitled')}\n\n"
+        content += f"**Message:** {case.get('original_message', 'N/A')}\n\n"
+        content += f"**Analysis:** {case.get('analysis', 'N/A')}\n\n"
+        content += f"**Key Lesson:** {case.get('key_lesson', 'N/A')}\n\n---\n\n"
+    
+    return content
+
 # ============================================================================
 # API ENDPOINTS
 # ============================================================================
@@ -427,14 +650,14 @@ async def health_check():
     """Enhanced health check endpoint"""
     return {
         "status": "healthy",
-        "version": "2.0.0 Enhanced",
-        "features": ["comprehensive_extraction", "quality_validation", "integrated_markdown"],
+        "version": "3.0.0 Multi-Line JSON Fixed",
+        "features": ["multiline_json_extraction", "quality_validation", "integrated_markdown"],
         "timestamp": datetime.now().isoformat()
     }
 
 @app.post("/api/training/start", response_model=TrainingResponse)
 async def start_enhanced_training(request: TrainingRequest, background_tasks: BackgroundTasks):
-    """Start a new enhanced training session"""
+    """Start a new enhanced training session with multi-line JSON support"""
     
     # Clean up old sessions
     cleanup_old_sessions()
@@ -452,7 +675,7 @@ async def start_enhanced_training(request: TrainingRequest, background_tasks: Ba
     return TrainingResponse(
         session_id=session_id,
         status="started",
-        message="Enhanced training session started with comprehensive data extraction and validation"
+        message="Multi-line JSON training session started with FIXED extraction and validation"
     )
 
 @app.get("/api/training/status/{session_id}", response_model=StatusResponse)
@@ -517,7 +740,7 @@ async def download_enhanced_playbook(session_id: str):
             if session_id in sessions:
                 del sessions[session_id]
             
-            print(f"Cleaned up enhanced session {session_id} after download")
+            print(f"Cleaned up multi-line session {session_id} after download")
         except Exception as e:
             print(f"Cleanup error for session {session_id}: {e}")
     
@@ -568,6 +791,112 @@ async def get_session_metrics(session_id: str):
         "extraction_summary": session.get("extracted_data", {}).get("extraction_log", [])
     }
 
+@app.get("/api/training/debug/{session_id}")
+async def debug_session_logs(session_id: str):
+    """Debug endpoint to inspect session logs and extraction"""
+    
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    session = sessions[session_id]
+    debug_info = {
+        "session_id": session_id,
+        "crew_log_file": session.get("crew_log_file"),
+        "backup_directory": session.get("backup_directory"),
+        "log_file_exists": False,
+        "log_file_size": 0,
+        "backup_files": [],
+        "extraction_log": [],
+        "raw_log_sample": [],
+        "completed_tasks_found": [],
+        "multiline_support": True
+    }
+    
+    # Check crew log file
+    if session.get("crew_log_file"):
+        log_file = session["crew_log_file"]
+        if os.path.exists(log_file):
+            debug_info["log_file_exists"] = True
+            debug_info["log_file_size"] = os.path.getsize(log_file)
+            
+            # Read and analyze the log file
+            try:
+                with open(log_file, 'r', encoding='utf-8') as f:
+                    lines = f.readlines()
+                    
+                    # Show first 10 lines
+                    debug_info["raw_log_sample"] = [line.strip() for line in lines[:10]]
+                    
+                    # Find completed tasks
+                    completed_tasks = []
+                    for i, line in enumerate(lines):
+                        if 'status="completed"' in line:
+                            completed_tasks.append({
+                                "line_number": i + 1,
+                                "line_content": line.strip()[:200] + "..." if len(line) > 200 else line.strip()
+                            })
+                    
+                    debug_info["completed_tasks_found"] = completed_tasks
+                    
+            except Exception as e:
+                debug_info["log_read_error"] = str(e)
+    
+    # Check backup directory
+    if session.get("backup_directory"):
+        backup_dir = Path(session["backup_directory"])
+        if backup_dir.exists():
+            debug_info["backup_files"] = [f.name for f in backup_dir.glob("*")]
+    
+    # Get extraction log
+    if session.get("extracted_data"):
+        debug_info["extraction_log"] = session["extracted_data"].get("extraction_log", [])
+    
+    return debug_info
+
+@app.get("/api/training/test-extraction/{session_id}")
+async def test_extraction(session_id: str):
+    """Test the multi-line extraction process manually"""
+    
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    session = sessions[session_id]
+    log_file = session.get("crew_log_file")
+    
+    if not log_file or not os.path.exists(log_file):
+        raise HTTPException(status_code=404, detail="Log file not found")
+    
+    # Run multi-line extraction manually
+    try:
+        data_extractor = SessionDataExtractor(session_id)
+        result = data_extractor.extract_complete_session_data(log_file)
+        
+        return {
+            "extraction_successful": True,
+            "extraction_method": "multi-line JSON parser",
+            "total_tasks_found": result["raw_data"].get("total_tasks_found", 0),
+            "parsing_success": result["raw_data"].get("parsing_success", False),
+            "extraction_log": result["raw_data"].get("extraction_log", []),
+            "data_summary": {
+                "scenario_data": "✅ Present" if result["raw_data"].get("scenario_data") else "❌ Missing",
+                "problematic_messages": "✅ Present" if result["raw_data"].get("problematic_messages") else "❌ Missing",
+                "corrected_messages": "✅ Present" if result["raw_data"].get("corrected_messages") else "❌ Missing",
+                "playbook_data": "✅ Present" if result["raw_data"].get("playbook_data") else "❌ Missing"
+            },
+            "quality_score": result["validation"].get("quality_score", 0),
+            "completeness": result["validation"].get("completeness_percentage", 0),
+            "company_extracted": result["raw_data"].get("scenario_data", {}).get("company_name", "Not found"),
+            "version": "3.0.0 Multi-Line JSON Fixed"
+        }
+        
+    except Exception as e:
+        return {
+            "extraction_successful": False,
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "version": "3.0.0 Multi-Line JSON Fixed"
+        }
+
 # ============================================================================
 # SERVER STARTUP
 # ============================================================================
@@ -575,8 +904,8 @@ async def get_session_metrics(session_id: str):
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     
-    print("🌱 Starting Enhanced Sustainability Training API v2.0...")
-    print("🔧 Features: Comprehensive extraction, Quality validation, Integrated markdown")
+    print("🌱 Starting Multi-Line JSON Fixed Sustainability Training API v3.0...")
+    print("🔧 Features: MULTI-LINE JSON extraction, Quality validation, Integrated markdown")
     print(f"🔗 Server will run on: http://localhost:{port}")
     print(f"📚 API docs available at: http://localhost:{port}/docs")
     
