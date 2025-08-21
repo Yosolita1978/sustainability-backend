@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-FastAPI Backend for Sustainability Training - COMPLETE DATA DUMP VERSION
-Dumps everything from crew execution and creates comprehensive reports
+FastAPI Backend for Sustainability Training
+Single file approach - everything in one place for MVP
 """
 
 import os
@@ -10,8 +10,9 @@ import uuid
 import asyncio
 import warnings
 import json
+import re
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from pathlib import Path
 
 from fastapi import FastAPI, BackgroundTasks, HTTPException, Response
@@ -51,7 +52,7 @@ except ImportError:
 # FastAPI app setup
 app = FastAPI(
     title="Sustainability Training API",
-    description="AI-powered sustainability messaging training with complete data dump",
+    description="AI-powered sustainability messaging training",
     version="1.0.0"
 )
 
@@ -101,7 +102,7 @@ class ProgressUpdate(BaseModel):
 sessions: Dict[str, Dict[str, Any]] = {}
 
 def create_session(training_request: TrainingRequest) -> str:
-    """Create a new training session"""
+    """Create a new training session with unique ID"""
     session_id = str(uuid.uuid4())
     
     sessions[session_id] = {
@@ -115,7 +116,9 @@ def create_session(training_request: TrainingRequest) -> str:
         "request": training_request.model_dump(),
         "results": None,
         "file_path": None,
-        "progress_updates": []
+        "progress_updates": [],
+        "txt_dump_file": None,  # Track the .txt dump file for this session
+        "crew_log_file": None   # Track the crew log file for this session
     }
     
     return session_id
@@ -155,7 +158,7 @@ def complete_session(session_id: str, results: Any, file_path: str = None, error
             sessions[session_id]["current_step"] = "Training completed successfully!"
 
 def cleanup_old_sessions():
-    """Remove sessions older than 2 hours"""
+    """Remove sessions older than 2 hours and their files"""
     cutoff_time = datetime.now() - timedelta(hours=2)
     expired_sessions = [
         sid for sid, session in sessions.items()
@@ -163,10 +166,24 @@ def cleanup_old_sessions():
     ]
     
     for sid in expired_sessions:
-        # Clean up any files
+        # Clean up session files
         if sessions[sid].get("file_path") and os.path.exists(sessions[sid]["file_path"]):
             try:
                 os.remove(sessions[sid]["file_path"])
+            except:
+                pass
+        
+        # Clean up .txt dump file
+        if sessions[sid].get("txt_dump_file") and os.path.exists(sessions[sid]["txt_dump_file"]):
+            try:
+                os.remove(sessions[sid]["txt_dump_file"])
+            except:
+                pass
+        
+        # Clean up crew log file
+        if sessions[sid].get("crew_log_file") and os.path.exists(sessions[sid]["crew_log_file"]):
+            try:
+                os.remove(sessions[sid]["crew_log_file"])
             except:
                 pass
         
@@ -234,83 +251,87 @@ class APICallbackHandler:
         )
 
 # ============================================================================
-# DATA EXTRACTION AND PROCESSING FUNCTIONS
+# COMPREHENSIVE DATA EXTRACTION FROM LOG FILES
 # ============================================================================
 
-def extract_all_detailed_data(result) -> Dict[str, Any]:
-    """Extract ALL detailed data from result object"""
-    detailed_data = {
-        "tasks": [],
-        "raw_result": str(result),
-        "extraction_log": [],
-        "metadata": {
-            "extraction_timestamp": datetime.now().isoformat(),
-            "result_type": type(result).__name__
-        }
+def extract_all_task_data_from_log(log_file_path: str) -> Dict[str, Any]:
+    """Extract ALL detailed data from the session log file"""
+    print(f"🔍 EXTRACTING: Reading session log file: {log_file_path}")
+    
+    extracted_data = {
+        "scenario_data": None,
+        "problematic_messages": None,
+        "corrected_messages": None,
+        "playbook_data": None,
+        "extraction_log": []
     }
     
-    print("🔍 Starting comprehensive data extraction...")
+    if not os.path.exists(log_file_path):
+        print(f"❌ EXTRACTING: Log file not found: {log_file_path}")
+        return extracted_data
     
-    if hasattr(result, 'tasks_output') and result.tasks_output:
-        detailed_data["extraction_log"].append(f"Found {len(result.tasks_output)} task outputs")
+    try:
+        with open(log_file_path, 'r', encoding='utf-8') as f:
+            log_content = f.read()
         
-        for i, task_output in enumerate(result.tasks_output):
-            print(f"📋 Processing task {i+1}...")
-            
-            task_data = {
-                "task_number": i + 1,
-                "raw_output": str(task_output),
-                "task_type": type(task_output).__name__,
-                "available_attributes": [attr for attr in dir(task_output) if not attr.startswith('_')]
-            }
-            
-            # Try to get pydantic data (most likely location of detailed data)
-            if hasattr(task_output, 'pydantic') and task_output.pydantic:
-                try:
-                    structured_data = task_output.pydantic.model_dump()
-                    task_data["structured_data"] = structured_data
-                    task_data["pydantic_type"] = type(task_output.pydantic).__name__
-                    detailed_data["extraction_log"].append(f"✅ Task {i+1}: Got structured data ({len(str(structured_data))} chars)")
-                    print(f"✅ Task {i+1}: Extracted structured data")
-                except Exception as e:
-                    detailed_data["extraction_log"].append(f"❌ Task {i+1}: Error getting structured data: {e}")
-                    print(f"❌ Task {i+1}: Error getting structured data: {e}")
-            else:
-                detailed_data["extraction_log"].append(f"⚠️ Task {i+1}: No pydantic data found")
-                print(f"⚠️ Task {i+1}: No pydantic data found")
-            
-            # Try to get raw data
-            if hasattr(task_output, 'raw'):
-                task_data["raw"] = str(task_output.raw)
-                detailed_data["extraction_log"].append(f"📄 Task {i+1}: Got raw data")
-            
-            # Try to get other common attributes
-            for attr in ['json_dict', 'output', 'result', 'agent', 'description']:
-                if hasattr(task_output, attr):
-                    try:
-                        value = getattr(task_output, attr)
-                        task_data[attr] = str(value) if not isinstance(value, (dict, list)) else value
-                        detailed_data["extraction_log"].append(f"📎 Task {i+1}: Got {attr}")
-                    except Exception as e:
-                        detailed_data["extraction_log"].append(f"❌ Task {i+1}: Error getting {attr}: {e}")
-            
-            detailed_data["tasks"].append(task_data)
-    else:
-        detailed_data["extraction_log"].append("❌ No tasks_output found in result")
-        print("❌ No tasks_output found in result")
-    
-    print(f"✅ Extraction complete: {len(detailed_data['tasks'])} tasks processed")
-    return detailed_data
+        # Extract task outputs using regex patterns
+        task_pattern = r'task_name="([^"]+)".*?status="completed".*?output="(\{.*?\})"(?=\n\d{4}-\d{2}-\d{2}|\Z)'
+        
+        matches = re.findall(task_pattern, log_content, re.DOTALL)
+        
+        for task_name, output_json in matches:
+            try:
+                # Clean and parse the JSON
+                cleaned_json = output_json.replace('\n', '').replace('\\', '')
+                task_data = json.loads(cleaned_json)
+                
+                # Categorize based on task name
+                if "scenario" in task_name:
+                    extracted_data["scenario_data"] = task_data
+                    extracted_data["extraction_log"].append(f"✅ Extracted scenario data: {task_data.get('company_name', 'Unknown')}")
+                    
+                elif "mistake" in task_name:
+                    extracted_data["problematic_messages"] = task_data
+                    num_messages = len(task_data.get('problematic_messages', []))
+                    extracted_data["extraction_log"].append(f"✅ Extracted {num_messages} problematic messages")
+                    
+                elif "best_practice" in task_name:
+                    extracted_data["corrected_messages"] = task_data
+                    num_corrections = len(task_data.get('corrected_messages', []))
+                    extracted_data["extraction_log"].append(f"✅ Extracted {num_corrections} corrected messages")
+                    
+                elif "playbook" in task_name:
+                    extracted_data["playbook_data"] = task_data
+                    extracted_data["extraction_log"].append(f"✅ Extracted playbook: {task_data.get('playbook_title', 'Unknown')}")
+                    
+            except json.JSONDecodeError as e:
+                extracted_data["extraction_log"].append(f"❌ JSON parse error for {task_name}: {e}")
+                print(f"❌ EXTRACTING: JSON parse error for {task_name}: {e}")
+                
+        print(f"✅ EXTRACTING: Completed extraction from {log_file_path}")
+        return extracted_data
+        
+    except Exception as e:
+        print(f"❌ EXTRACTING: Error reading log file: {e}")
+        extracted_data["extraction_log"].append(f"❌ Error reading log file: {e}")
+        return extracted_data
 
-def create_comprehensive_markdown(data: Dict[str, Any], session_id: str, training_request: TrainingRequest) -> str:
-    """Create comprehensive markdown from ALL extracted data"""
+def create_comprehensive_markdown(all_data: Dict[str, Any], session_id: str, training_request: TrainingRequest) -> str:
+    """Create comprehensive markdown from ALL extracted task data"""
     
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     
-    content = f"""# Complete Sustainability Training Report
+    # Extract data sections
+    scenario = all_data.get('scenario_data', {})
+    problematic = all_data.get('problematic_messages', {})
+    corrected = all_data.get('corrected_messages', {})
+    playbook = all_data.get('playbook_data', {})
+    
+    # Start building comprehensive content
+    content = f"""# {playbook.get('playbook_title', 'Comprehensive Sustainability Training Report')}
 
-**🤖 Generated by:** Sustainability Training AI Crew  
-**📅 Timestamp:** {timestamp}  
+**🤖 Generated by:** Sustainability Training AI  
+**📅 Created:** {timestamp}  
 **🆔 Session ID:** {session_id}  
 **🏢 Industry Focus:** {training_request.industry_focus}  
 **🌍 Regulatory Framework:** {training_request.regulatory_framework}  
@@ -318,189 +339,286 @@ def create_comprehensive_markdown(data: Dict[str, Any], session_id: str, trainin
 
 ---
 
-## 📊 Extraction Summary
+## 📋 Executive Summary
 
-**📋 Tasks Processed:** {len(data.get('tasks', []))}  
-**🔍 Extraction Method:** Comprehensive data dump  
-**⏰ Extraction Time:** {data.get('metadata', {}).get('extraction_timestamp', 'Unknown')}  
-
-### 📝 Extraction Log
-{format_extraction_log(data.get('extraction_log', []))}
+{playbook.get('executive_summary', 'This comprehensive report provides detailed sustainability messaging guidance tailored to your industry and regulatory context.')}
 
 ---
 
-## 🎯 Complete Training Results
+## 🏢 Business Scenario: {scenario.get('company_name', 'Your Company')}
 
-This report contains **every detail** from your AI training session, including all agent outputs, structured data, and raw results.
+**Industry:** {scenario.get('industry', 'N/A')}  
+**Company Size:** {scenario.get('company_size', 'N/A')}  
+**Location:** {scenario.get('location', 'N/A')}  
 
+**Product/Service:** {scenario.get('product_service', 'N/A')}
+
+**Target Audience:** {scenario.get('target_audience', 'N/A')}
+
+### Marketing Objectives
+{format_list_items(scenario.get('marketing_objectives', []))}
+
+### Sustainability Context
+{scenario.get('sustainability_context', 'N/A')}
+
+### Initial Claims to Review
+{format_list_items(scenario.get('preliminary_claims', []))}
+
+### Regulatory Context
+{scenario.get('regulatory_context', 'N/A')}
+
+---
+
+## 🚨 Problematic Messaging Analysis
+
+{format_problematic_messages_detailed(problematic)}
+
+---
+
+## ✅ Best Practice Corrections
+
+{format_corrected_messages_detailed(corrected)}
+
+---
+
+## 📋 Do's and Don'ts
+
+{format_list_items(playbook.get('dos_and_donts', []))}
+
+---
+
+## 🚨 Greenwashing Patterns to Avoid
+
+{format_list_items(playbook.get('greenwashing_patterns', []))}
+
+---
+
+## 🔄 Claim-to-Proof Framework
+
+{format_framework_detailed(playbook.get('claim_to_proof_framework', {}))}
+
+---
+
+## ✅ Compliance Checklist
+
+{format_checklist_detailed(playbook.get('compliance_checklist', {}))}
+
+---
+
+## 📖 Case Study Examples
+
+{format_case_studies_detailed(playbook.get('case_study_snapshots', []))}
+
+---
+
+## 📄 Regulatory References
+
+{format_list_items(playbook.get('regulatory_references', []))}
+
+---
+
+## 🚀 Implementation Guide
+
+### Quick Start Guide
+{format_list_items(playbook.get('quick_start_guide', []))}
+
+### Team Training Tips
+{format_list_items(playbook.get('team_training_tips', []))}
+
+---
+
+## 📚 Additional Resources
+
+{format_list_items(playbook.get('additional_resources', []))}
+
+---
+
+## 📞 Contact Resources
+
+{format_list_items(playbook.get('contact_resources', []))}
+
+---
+
+## 📖 Glossary
+
+{format_list_items(playbook.get('glossary_terms', []))}
+
+---
+
+## 📊 Training Session Summary
+
+**Total Tasks Completed:** 4  
+**Data Extraction Status:** {len([x for x in all_data['extraction_log'] if '✅' in x])} successful extractions  
+
+### Extraction Log
+{format_list_items(all_data.get('extraction_log', []))}
+
+---
+
+*Generated by Sustainability Training AI on {timestamp}*  
+*Session ID: {session_id}*  
+*All data extracted from session-specific logs for maximum detail*
 """
     
-    # Process each task
-    for task in data.get('tasks', []):
-        content += f"""## 📋 Task {task.get('task_number', 'Unknown')} - {task.get('pydantic_type', 'Unknown Type')}
+    return content
 
-**Task Type:** {task.get('task_type', 'Unknown')}  
-**Available Attributes:** {', '.join(task.get('available_attributes', []))}  
+def format_problematic_messages_detailed(problematic_data: Dict[str, Any]) -> str:
+    """Format problematic messages with full detail"""
+    if not problematic_data or not problematic_data.get('problematic_messages'):
+        return "*No problematic messages data available*"
+    
+    content = f"**Scenario Reference:** {problematic_data.get('scenario_reference', 'N/A')}\n\n"
+    content += f"**Regulatory Landscape:** {problematic_data.get('regulatory_landscape', 'N/A')}\n\n"
+    
+    for i, msg in enumerate(problematic_data.get('problematic_messages', []), 1):
+        content += f"""### ❌ Problematic Message {i}
 
-"""
-        
-        # Show structured data if available
-        if 'structured_data' in task:
-            content += format_structured_data_section(task['structured_data'], task.get('task_number', 0))
-        
-        # Show raw output (truncated)
-        content += f"""### 📄 Raw Task Output
-<details>
-<summary>Click to view raw output</summary>
+**Message:** "{msg.get('message', 'N/A')}"
 
-```
-{task.get('raw_output', 'No raw output')[:2000]}{"..." if len(task.get('raw_output', '')) > 2000 else ""}
-```
+**Problems Identified:**
+{format_list_items(msg.get('problems_identified', []))}
 
-</details>
+**Regulatory Violations:**
+{format_list_items(msg.get('regulatory_violations', []))}
+
+**Greenwashing Patterns:**
+{format_list_items(msg.get('greenwashing_patterns', []))}
+
+**Why Problematic:**
+{msg.get('why_problematic', 'N/A')}
+
+**Real-World Examples:**
+{format_list_items(msg.get('real_world_examples', []))}
+
+**Potential Consequences:**
+{format_list_items(msg.get('potential_consequences', []))}
 
 ---
 
 """
     
-    # Add complete raw result at the end
-    content += f"""## 🔧 Complete Raw Result Object
+    return content
 
-<details>
-<summary>Click to view complete result object ({len(data.get('raw_result', '')):,} characters)</summary>
+def format_corrected_messages_detailed(corrected_data: Dict[str, Any]) -> str:
+    """Format corrected messages with full detail"""
+    if not corrected_data or not corrected_data.get('corrected_messages'):
+        return "*No corrected messages data available*"
+    
+    content = f"**Scenario Reference:** {corrected_data.get('scenario_reference', 'N/A')}\n\n"
+    
+    for i, msg in enumerate(corrected_data.get('corrected_messages', []), 1):
+        content += f"""### ✅ Corrected Message {i}
 
-```
-{data.get('raw_result', 'No raw result')[:5000]}{"..." if len(data.get('raw_result', '')) > 5000 else ""}
-```
+**Original Problem:** Message {msg.get('original_message_id', 'N/A')}
 
-</details>
+**Improved Message:** "{msg.get('corrected_message', 'N/A')}"
+
+**Changes Made:**
+{format_list_items(msg.get('changes_made', []))}
+
+**Compliance Notes:**
+{msg.get('compliance_notes', 'N/A')}
+
+**Best Practices Applied:**
+{format_list_items(msg.get('best_practices_applied', []))}
+
+**Real-World Examples:**
+{format_list_items(msg.get('real_world_examples', []))}
+
+**Effectiveness Rationale:**
+{msg.get('effectiveness_rationale', 'N/A')}
 
 ---
 
-## 🎯 Training Session Summary
-
-This comprehensive report contains **every piece of data** generated during your sustainability training session:
-
-✅ **Complete Agent Outputs** - All detailed JSON data from each AI agent  
-✅ **Structured Business Scenarios** - Full company profiles and regulatory contexts  
-✅ **Detailed Problematic Message Analysis** - Complete breakdown of issues and violations  
-✅ **Comprehensive Best Practice Corrections** - All improvements and explanations  
-✅ **Complete Implementation Playbooks** - Full frameworks and checklists  
-✅ **All Research Sources** - Every reference and real-world example used  
-
-### 🚀 How to Use This Report
-
-- **📋 For Immediate Implementation** - Use the structured data sections
-- **🔍 For Deep Analysis** - Review the complete agent reasoning
-- **📚 For Team Training** - Share the case studies and frameworks
-- **⚖️ For Compliance** - Use the regulatory references and checklists
-
----
-
-*Complete report generated on {timestamp}*  
-*All data extracted using comprehensive dump method*
 """
     
     return content
 
-def format_extraction_log(log_entries: list) -> str:
-    """Format the extraction log entries"""
-    if not log_entries:
-        return "*No extraction log entries*"
+def format_framework_detailed(framework: Dict[str, Any]) -> str:
+    """Format framework with full detail"""
+    if not framework:
+        return "*Framework not available*"
     
-    formatted = ""
-    for entry in log_entries:
-        if "✅" in entry:
-            formatted += f"✅ {entry}\n"
-        elif "❌" in entry:
-            formatted += f"❌ {entry}\n"
-        elif "⚠️" in entry:
-            formatted += f"⚠️ {entry}\n"
-        else:
-            formatted += f"📎 {entry}\n"
-    
-    return formatted
+    content = f"""### {framework.get('framework_name', 'Validation Framework')}
 
-def format_structured_data_section(structured_data: Dict[str, Any], task_number: int) -> str:
-    """Format structured data into readable sections"""
-    
-    content = f"### 📊 Structured Data (Task {task_number})\n\n"
-    
-    # Try to identify what type of data this is and format accordingly
-    if 'problematic_messages' in structured_data:
-        content += format_problematic_messages(structured_data)
-    elif 'corrected_messages' in structured_data:
-        content += format_corrected_messages(structured_data)
-    elif 'company_name' in structured_data:
-        content += format_business_scenario(structured_data)
-    elif 'playbook_title' in structured_data:
-        content += format_playbook_data(structured_data)
-    else:
-        # Generic formatting
-        content += f"```json\n{json.dumps(structured_data, indent=2)}\n```\n\n"
+**Steps:**
+{format_list_items(framework.get('steps', []))}
+
+**Validation Questions:**
+{format_list_items(framework.get('validation_questions', []))}
+
+**Proof Requirements:**
+{format_list_items(framework.get('proof_requirements', []))}
+
+**Common Pitfalls:**
+{format_list_items(framework.get('common_pitfalls', []))}
+
+**Examples:**
+{format_list_items(framework.get('examples', []))}
+"""
     
     return content
 
-def format_problematic_messages(data: Dict[str, Any]) -> str:
-    """Format problematic messages data"""
-    content = f"**Scenario:** {data.get('scenario_reference', 'N/A')}\n\n"
-    content += f"**Regulatory Landscape:** {data.get('regulatory_landscape', 'N/A')}\n\n"
+def format_checklist_detailed(checklist: Dict[str, Any]) -> str:
+    """Format checklist with full detail"""
+    if not checklist:
+        return "*Checklist not available*"
     
-    content += "#### 🚨 Problematic Messages\n\n"
-    for msg in data.get('problematic_messages', []):
-        content += f"**Message {msg.get('id', 'Unknown')}:** {msg.get('message', 'N/A')}\n\n"
-        content += f"**Problems:** {', '.join(msg.get('problems_identified', []))}\n\n"
-        content += f"**Violations:** {', '.join(msg.get('regulatory_violations', []))}\n\n"
-        content += f"**Why Problematic:** {msg.get('why_problematic', 'N/A')}\n\n"
-        content += "---\n\n"
+    content = f"""### {checklist.get('checklist_name', 'Compliance Checklist')}
+
+**Categories:**
+{format_list_items(checklist.get('categories', []))}
+
+**Validation Questions:**
+{format_list_items(checklist.get('questions', []))}
+
+**Red Flags:**
+{format_list_items(checklist.get('red_flags', []))}
+
+**Approval Criteria:**
+{format_list_items(checklist.get('approval_criteria', []))}
+"""
     
     return content
 
-def format_corrected_messages(data: Dict[str, Any]) -> str:
-    """Format corrected messages data"""
-    content = f"**Scenario:** {data.get('scenario_reference', 'N/A')}\n\n"
+def format_case_studies_detailed(case_studies: List[Dict[str, Any]]) -> str:
+    """Format case studies with full detail"""
+    if not case_studies:
+        return "*No case studies available*"
     
-    content += "#### ✅ Corrected Messages\n\n"
-    for msg in data.get('corrected_messages', []):
-        content += f"**Original ID:** {msg.get('original_message_id', 'Unknown')}\n\n"
-        content += f"**Corrected Message:** {msg.get('corrected_message', 'N/A')}\n\n"
-        content += f"**Changes Made:** {', '.join(msg.get('changes_made', []))}\n\n"
-        content += f"**Compliance Notes:** {msg.get('compliance_notes', 'N/A')}\n\n"
-        content += "---\n\n"
-    
-    return content
+    content = ""
+    for i, case in enumerate(case_studies, 1):
+        content += f"""### Case Study {i}: {case.get('title', 'Untitled')}
 
-def format_business_scenario(data: Dict[str, Any]) -> str:
-    """Format business scenario data"""
-    content = f"**Company:** {data.get('company_name', 'N/A')}\n\n"
-    content += f"**Industry:** {data.get('industry', 'N/A')}\n\n"
-    content += f"**Location:** {data.get('location', 'N/A')}\n\n"
-    content += f"**Product/Service:** {data.get('product_service', 'N/A')}\n\n"
-    content += f"**Target Audience:** {data.get('target_audience', 'N/A')}\n\n"
-    
-    if 'marketing_objectives' in data:
-        content += "**Marketing Objectives:**\n"
-        for obj in data['marketing_objectives']:
-            content += f"- {obj}\n"
-        content += "\n"
-    
-    return content
+**Company:** {case.get('company_name', 'Anonymous')}  
+**Message Type:** {case.get('message_type', 'Unknown')}
 
-def format_playbook_data(data: Dict[str, Any]) -> str:
-    """Format playbook data"""
-    content = f"**Title:** {data.get('playbook_title', 'N/A')}\n\n"
-    content += f"**Target Audience:** {data.get('target_audience', 'N/A')}\n\n"
-    content += f"**Executive Summary:** {data.get('executive_summary', 'N/A')}\n\n"
+**Original Message:**
+> {case.get('original_message', 'Not provided')}
+
+**Analysis:**
+{case.get('analysis', 'No analysis provided')}
+
+**Key Lesson:**
+{case.get('key_lesson', 'No lesson provided')}
+
+**Regulatory Context:**
+{case.get('regulatory_context', 'No context provided')}
+
+---
+
+"""
     
     return content
 
 # ============================================================================
-# TRAINING EXECUTION WITH COMPLETE DATA DUMP
+# TRAINING EXECUTION WITH COMPREHENSIVE DATA EXTRACTION
 # ============================================================================
 
 def run_training_session(session_id: str, training_request: TrainingRequest):
-    """Run training and dump EVERYTHING to files"""
+    """Run the actual training session with comprehensive data extraction"""
     try:
+        # Update session status
         update_session_progress(session_id, 5, "Initializing AI agents...", "System")
         
         # Get regulatory details
@@ -521,111 +639,145 @@ def run_training_session(session_id: str, training_request: TrainingRequest):
         # Create callback handler for this session
         callback_handler = APICallbackHandler(session_id)
         
-        # Create and run crew
-        sustainability_crew = Sustainability()
+        # Create and run crew WITH SESSION ID
+        print(f"🔧 DEBUGGING: Creating crew with session_id: {session_id}")
+        sustainability_crew = Sustainability(session_id=session_id)  # PASS SESSION ID
         crew = sustainability_crew.crew()
+        
+        # Store the crew log file path in session
+        crew_log_file = sustainability_crew._get_session_log_file()
+        sessions[session_id]["crew_log_file"] = crew_log_file
+        print(f"🔧 DEBUGGING: Crew log file will be: {crew_log_file}")
         
         update_session_progress(session_id, 15, "AI agents collaborating...", "System")
         
         # Run the training
         result = crew.kickoff(inputs=inputs)
         
-        update_session_progress(session_id, 70, "Training complete, saving ALL data...", "System")
+        # Generate comprehensive report
+        update_session_progress(session_id, 70, "Training complete, extracting ALL data...", "System")
         
         # Create outputs directory if needed
         outputs_dir = Path("outputs")
         outputs_dir.mkdir(exist_ok=True)
         
-        # Generate file names
+        # Generate file
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         
-        # 1. DUMP EVERYTHING TO TXT FILE
-        dump_filename = f"complete_result_dump_{session_id[:8]}_{timestamp}.txt"
+        # =================================================================
+        # SESSION-SPECIFIC .TXT DUMP FILE CREATION (UNCHANGED)
+        # =================================================================
+        print(f"🔍 DEBUGGING: Starting SESSION-SPECIFIC .txt dump file creation...")
+        
+        # Create session-specific dump filename
+        dump_filename = f"session_{session_id[:8]}_{timestamp}_complete_dump.txt"
         dump_file_path = outputs_dir / dump_filename
         
-        with open(dump_file_path, 'w', encoding='utf-8') as f:
-            f.write("COMPLETE CREW RESULT DUMP\n")
-            f.write("=" * 50 + "\n\n")
-            f.write(f"Session ID: {session_id}\n")
-            f.write(f"Timestamp: {datetime.now()}\n")
-            f.write(f"Industry: {training_request.industry_focus}\n")
-            f.write(f"Framework: {training_request.regulatory_framework}\n\n")
-            
-            # Dump the entire result object
-            f.write("RESULT OBJECT:\n")
-            f.write("-" * 30 + "\n")
-            f.write(str(result) + "\n\n")
-            
-            # Dump tasks_output if it exists
-            if hasattr(result, 'tasks_output'):
-                f.write(f"TASKS OUTPUT ({len(result.tasks_output)} tasks):\n")
+        # Store the txt dump file path in session
+        sessions[session_id]["txt_dump_file"] = str(dump_file_path)
+        
+        # Create .txt dump file (same as before)
+        txt_file_created = False
+        try:
+            with open(dump_file_path, 'w', encoding='utf-8') as f:
+                f.write(f"COMPLETE CREW RESULT DUMP - SESSION {session_id}\n")
+                f.write("=" * 60 + "\n\n")
+                f.write(f"Session ID: {session_id}\n")
+                f.write(f"Timestamp: {datetime.now()}\n")
+                f.write(f"Industry: {training_request.industry_focus}\n")
+                f.write(f"Framework: {training_request.regulatory_framework}\n")
+                f.write(f"Training Level: {training_request.training_level}\n")
+                f.write(f"Session Log File: {crew_log_file}\n\n")
+                
+                f.write("RESULT OBJECT:\n")
                 f.write("-" * 30 + "\n")
-                for i, task_output in enumerate(result.tasks_output):
-                    f.write(f"\nTASK {i+1}:\n")
-                    f.write(f"Task Output Object: {task_output}\n")
-                    
-                    if hasattr(task_output, 'pydantic'):
-                        f.write(f"Pydantic Data: {task_output.pydantic}\n")
-                        if task_output.pydantic:
-                            try:
-                                pydantic_dump = task_output.pydantic.model_dump()
-                                f.write(f"Pydantic Model Dump: {json.dumps(pydantic_dump, indent=2)}\n")
-                            except Exception as e:
-                                f.write(f"Pydantic Model Dump Error: {e}\n")
-                    
-                    if hasattr(task_output, 'raw'):
-                        f.write(f"Raw Output: {task_output.raw}\n")
-                    
-                    if hasattr(task_output, 'json_dict'):
-                        f.write(f"JSON Dict: {task_output.json_dict}\n")
-                    
-                    # Try to get all attributes
-                    f.write(f"All attributes: {[attr for attr in dir(task_output) if not attr.startswith('_')]}\n")
-                    f.write("-" * 20 + "\n")
+                f.write(str(result) + "\n\n")
+                
+                if hasattr(result, 'tasks_output'):
+                    f.write(f"TASKS OUTPUT ({len(result.tasks_output)} tasks):\n")
+                    f.write("-" * 30 + "\n")
+                    for i, task_output in enumerate(result.tasks_output):
+                        f.write(f"\nTASK {i+1} (Session {session_id}):\n")
+                        f.write(f"Task Output Object: {task_output}\n")
+                        
+                        if hasattr(task_output, 'pydantic'):
+                            f.write(f"Pydantic Data: {task_output.pydantic}\n")
+                            if task_output.pydantic:
+                                try:
+                                    pydantic_dump = task_output.pydantic.model_dump()
+                                    f.write(f"Pydantic Model Dump: {json.dumps(pydantic_dump, indent=2)}\n")
+                                except Exception as e:
+                                    f.write(f"Pydantic Model Dump Error: {e}\n")
+                        
+                        if hasattr(task_output, 'raw'):
+                            f.write(f"Raw Output: {task_output.raw}\n")
+                        
+                        if hasattr(task_output, 'json_dict'):
+                            f.write(f"JSON Dict: {task_output.json_dict}\n")
+                        
+                        f.write(f"All attributes: {[attr for attr in dir(task_output) if not attr.startswith('_')]}\n")
+                        f.write("-" * 20 + "\n")
+                
+                f.write(f"\nSESSION ISOLATION INFO:\n")
+                f.write("-" * 30 + "\n")
+                f.write(f"Session ID: {session_id}\n")
+                f.write(f"Crew Log File: {crew_log_file}\n")
+                f.write(f"Dump File: {dump_file_path}\n")
+                f.write(f"Creation Time: {datetime.now()}\n")
             
-            # Try other attributes
-            f.write("\nOTHER RESULT ATTRIBUTES:\n")
-            f.write("-" * 30 + "\n")
-            for attr in dir(result):
-                if not attr.startswith('_'):
-                    try:
-                        value = getattr(result, attr)
-                        f.write(f"{attr}: {value}\n")
-                    except:
-                        f.write(f"{attr}: <could not access>\n")
+            if dump_file_path.exists():
+                file_size = dump_file_path.stat().st_size
+                print(f"✅ DEBUGGING: Session-specific .txt file created successfully!")
+                print(f"✅ DEBUGGING: File size: {file_size:,} bytes")
+                txt_file_created = True
+                
+        except Exception as txt_error:
+            print(f"❌ DEBUGGING: Session-specific .txt file creation failed: {str(txt_error)}")
         
-        update_session_progress(session_id, 80, "Extracting detailed data...", "System")
+        # =================================================================
+        # NEW: COMPREHENSIVE MARKDOWN GENERATION FROM LOG FILE
+        # =================================================================
+        update_session_progress(session_id, 85, "Extracting comprehensive data from logs...", "System")
         
-        # 2. EXTRACT ALL THE DETAILED DATA
-        all_detailed_data = extract_all_detailed_data(result)
+        # Extract ALL data from the session log file
+        all_task_data = extract_all_task_data_from_log(crew_log_file)
         
-        update_session_progress(session_id, 90, "Creating comprehensive markdown...", "System")
+        update_session_progress(session_id, 90, "Generating comprehensive playbook...", "System")
         
-        # 3. CREATE COMPREHENSIVE MARKDOWN
-        md_filename = f"comprehensive_sustainability_report_{session_id[:8]}_{timestamp}.md"
-        md_file_path = outputs_dir / md_filename
+        # Generate comprehensive markdown filename
+        filename = f"comprehensive_playbook_{session_id[:8]}_{timestamp}.md"
+        file_path = outputs_dir / filename
         
-        markdown_content = create_comprehensive_markdown(all_detailed_data, session_id, training_request)
+        # Create comprehensive markdown content
+        comprehensive_markdown = create_comprehensive_markdown(all_task_data, session_id, training_request)
         
-        with open(md_file_path, 'w', encoding='utf-8') as f:
-            f.write(markdown_content)
+        # Save comprehensive markdown
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(comprehensive_markdown)
         
-        update_session_progress(session_id, 95, "Finalizing files...", "System")
+        # Complete session
+        complete_session(session_id, result, str(file_path))
         
-        print(f"✅ Files created:")
-        print(f"📄 Complete dump: {dump_file_path} ({os.path.getsize(dump_file_path):,} bytes)")
-        print(f"📄 Comprehensive markdown: {md_file_path} ({os.path.getsize(md_file_path):,} bytes)")
-        
-        # Complete session with markdown file
-        complete_session(session_id, result, str(md_file_path))
+        print(f"✅ SESSION {session_id} COMPLETED WITH COMPREHENSIVE DATA")
+        print(f"📄 Comprehensive markdown file: {file_path}")
+        print(f"📄 TXT dump file: {dump_file_path if txt_file_created else 'FAILED'}")
+        print(f"📄 Crew log file: {crew_log_file}")
         
     except Exception as e:
         error_msg = f"Training failed: {str(e)}"
         print(f"❌ Error in session {session_id}: {error_msg}")
+        import traceback
+        print(f"❌ Full traceback: {traceback.format_exc()}")
         complete_session(session_id, None, None, error_msg)
 
+def format_list_items(items: list) -> str:
+    """Format list items as markdown"""
+    if not items:
+        return "*No items available*"
+    return "\n".join([f"• {item}" for item in items])
+
 # ============================================================================
-# API ENDPOINTS
+# API ENDPOINTS (UNCHANGED)
 # ============================================================================
 
 @app.get("/health")
@@ -653,7 +805,7 @@ async def start_training(request: TrainingRequest, background_tasks: BackgroundT
     return TrainingResponse(
         session_id=session_id,
         status="started",
-        message="Training session started with complete data dump"
+        message="Training session started with comprehensive data extraction"
     )
 
 @app.get("/api/training/status/{session_id}", response_model=StatusResponse)
@@ -677,7 +829,7 @@ async def get_training_status(session_id: str):
 
 @app.get("/api/training/download/{session_id}")
 async def download_playbook(session_id: str):
-    """Download the generated comprehensive report"""
+    """Download the generated comprehensive playbook"""
     
     if session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -688,7 +840,7 @@ async def download_playbook(session_id: str):
         raise HTTPException(status_code=400, detail="Training not completed yet")
     
     if not session["file_path"] or not os.path.exists(session["file_path"]):
-        raise HTTPException(status_code=404, detail="Report file not found")
+        raise HTTPException(status_code=404, detail="Playbook file not found")
     
     file_path = session["file_path"]
     filename = os.path.basename(file_path)
@@ -697,6 +849,11 @@ async def download_playbook(session_id: str):
     def cleanup_file():
         try:
             os.remove(file_path)
+            # Also clean up session-specific files
+            if session.get("txt_dump_file") and os.path.exists(session["txt_dump_file"]):
+                os.remove(session["txt_dump_file"])
+            if session.get("crew_log_file") and os.path.exists(session["crew_log_file"]):
+                os.remove(session["crew_log_file"])
             if session_id in sessions:
                 del sessions[session_id]
             print(f"Cleaned up session {session_id} after download")
@@ -722,7 +879,9 @@ async def list_active_sessions():
         "sessions": {sid: {
             "status": session["status"],
             "progress": session["progress"],
-            "created_at": session["created_at"].isoformat()
+            "created_at": session["created_at"].isoformat(),
+            "txt_dump_file": session.get("txt_dump_file"),
+            "crew_log_file": session.get("crew_log_file")
         } for sid, session in sessions.items()}
     }
 
@@ -733,7 +892,7 @@ async def list_active_sessions():
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     
-    print("🌱 Starting Sustainability Training API with Complete Data Dump...")
+    print("🌱 Starting Sustainability Training API with Comprehensive Data Extraction...")
     print(f"🔗 Server will run on: http://localhost:{port}")
     print(f"📚 API docs available at: http://localhost:{port}/docs")
     

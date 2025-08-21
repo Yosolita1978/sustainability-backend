@@ -127,7 +127,8 @@ class Sustainability():
     agents_config = 'config/agents.yaml'
     tasks_config = 'config/tasks.yaml'
     
-    def __init__(self) -> None:
+    def __init__(self, session_id: str = None) -> None:
+        self.session_id = session_id or f"session_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         self.user_preferences = self._load_user_preferences()
         self._ensure_output_directory()
         # Initialize search tool
@@ -145,6 +146,10 @@ class Sustainability():
         """Create outputs directory if it doesn't exist"""
         if not os.path.exists('outputs'):
             os.makedirs('outputs')
+    
+    def _get_session_log_file(self):
+        """Get session-specific log file path"""
+        return f"outputs/training_session_{self.session_id}.log"
     
     @agent
     def scenario_builder(self) -> Agent:
@@ -214,18 +219,18 @@ class Sustainability():
             config=self.tasks_config['playbook_task'],
             agent=self.playbook_creator(),
             output_pydantic=SustainabilityMessagingPlaybook,
-            output_file='outputs/sustainability_messaging_playbook.json',
+            output_file=f'outputs/sustainability_messaging_playbook_{self.session_id}.json',
             callback=print_task_output
         )
     
     @crew
     def crew(self) -> Crew:
-        """Creates the Sustainability Training crew"""
+        """Creates the Sustainability Training crew with session-specific logging"""
         return Crew(
             agents=self.agents,
             tasks=self.tasks,
             process=Process.sequential,
             verbose=True,
             memory=False,  # Disabled to avoid ChromaDB warnings for MVP
-            output_log_file="outputs/training_session.log"
+            output_log_file=self._get_session_log_file()  # SESSION-SPECIFIC LOG FILE
         )
