@@ -1,43 +1,39 @@
 #!/usr/bin/env python
 """
-FastAPI Backend for Sustainability Training
-Single file approach - everything in one place for MVP
+Clean FastAPI Backend for Sustainability Training
+Direct artifact generation - no log parsing complexity
 """
 
 import os
 import sys
 import uuid
-import asyncio
 import warnings
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 from pathlib import Path
 
-from fastapi import FastAPI, BackgroundTasks, HTTPException, Response
+from fastapi import FastAPI, BackgroundTasks, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 import uvicorn
 
-# Suppress specific warnings from dependencies until they update to Pydantic v2
-# Note: Our code uses Pydantic v2 correctly, but CrewAI/LangChain still use v1 syntax
+# Suppress specific warnings from dependencies
+# Suppress specific warnings from dependencies until they update to newer versions
 warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
+warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd.segmenter")
+warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd.lang.arabic")
+warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd.lang.persian")
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic")
-warnings.filterwarnings(
-    "ignore", 
-    category=DeprecationWarning,
-    message="Support for class-based `config` is deprecated",
-    module="pydantic._internal._config"
-)
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="pydantic")
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="pydantic._internal._config")
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="websockets.legacy")
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="uvicorn.protocols.websockets.websockets_impl")
-
-
 # Add sustainability module to path
 current_dir = Path(__file__).parent
 sys.path.insert(0, str(current_dir))
 
-# Import your existing crew
+# Import clean crew (will be modified)
 from sustainability.crew import Sustainability
 
 # Load environment variables
@@ -49,15 +45,15 @@ except ImportError:
 
 # FastAPI app setup
 app = FastAPI(
-    title="Sustainability Training API",
-    description="AI-powered sustainability messaging training",
-    version="1.0.0"
+    title="Clean Sustainability Training API",
+    description="AI-powered sustainability messaging training with direct artifact generation",
+    version="2.0.0"
 )
 
-# CORS middleware for frontend
+# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure properly for production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -86,68 +82,54 @@ class StatusResponse(BaseModel):
     completed_at: Optional[str] = None
     error: Optional[str] = None
 
-class ProgressUpdate(BaseModel):
-    step: str
-    progress: int
-    agent: str
-    message: str
-
 # ============================================================================
-# SESSION MANAGEMENT
+# SESSION MANAGEMENT (SIMPLIFIED)
 # ============================================================================
 
-# In-memory session storage
+# Clean session storage
 sessions: Dict[str, Dict[str, Any]] = {}
 
 def create_session(training_request: TrainingRequest) -> str:
     """Create a new training session"""
     session_id = str(uuid.uuid4())
     
+    # Create session artifact directory
+    artifact_dir = Path("outputs") / session_id
+    artifact_dir.mkdir(parents=True, exist_ok=True)
+    
     sessions[session_id] = {
         "id": session_id,
         "status": "created",
         "progress": 0,
-        "current_step": "Initializing...",
+        "current_step": "Initializing session...",
         "created_at": datetime.now(),
         "completed_at": None,
         "error": None,
         "request": training_request.model_dump(),
-        "results": None,
-        "file_path": None,
-        "progress_updates": []
+        "artifact_directory": str(artifact_dir),
+        "playbook_file": None
     }
     
     return session_id
 
-def update_session_progress(session_id: str, progress: int, step: str, agent: str = "System", message: str = ""):
+def update_session_progress(session_id: str, progress: int, step: str):
     """Update session progress"""
     if session_id in sessions:
         sessions[session_id]["progress"] = progress
         sessions[session_id]["current_step"] = step
-        
-        # Add to progress history
-        update = {
-            "timestamp": datetime.now().isoformat(),
-            "progress": progress,
-            "step": step,
-            "agent": agent,
-            "message": message
-        }
-        sessions[session_id]["progress_updates"].append(update)
-        
         print(f"Session {session_id}: {progress}% - {step}")
 
-def complete_session(session_id: str, results: Any, file_path: str = None, error: str = None):
+def complete_session(session_id: str, playbook_file: str = None, error: str = None):
     """Mark session as completed"""
     if session_id in sessions:
         sessions[session_id]["completed_at"] = datetime.now()
-        sessions[session_id]["results"] = results
-        sessions[session_id]["file_path"] = file_path
+        sessions[session_id]["playbook_file"] = playbook_file
         
         if error:
             sessions[session_id]["status"] = "failed"
             sessions[session_id]["error"] = error
             sessions[session_id]["progress"] = 0
+            sessions[session_id]["current_step"] = f"Training failed: {error}"
         else:
             sessions[session_id]["status"] = "completed"
             sessions[session_id]["progress"] = 100
@@ -162,12 +144,18 @@ def cleanup_old_sessions():
     ]
     
     for sid in expired_sessions:
-        # Clean up any files
-        if sessions[sid].get("file_path") and os.path.exists(sessions[sid]["file_path"]):
-            try:
-                os.remove(sessions[sid]["file_path"])
-            except:
-                pass
+        session = sessions[sid]
+        
+        # Clean up artifact directory
+        if session.get("artifact_directory"):
+            artifact_dir = Path(session["artifact_directory"])
+            if artifact_dir.exists():
+                try:
+                    for file in artifact_dir.glob("*"):
+                        file.unlink()
+                    artifact_dir.rmdir()
+                except Exception as e:
+                    print(f"Cleanup error for {sid}: {e}")
         
         del sessions[sid]
         print(f"Cleaned up expired session: {sid}")
@@ -177,70 +165,41 @@ def get_regulatory_details(region: str) -> Dict[str, str]:
     frameworks = {
         "EU": {
             "regulations": "EU Green Claims Directive, CSRD, EU Taxonomy Regulation",
-            "description": "European Union sustainability regulations focusing on green claims substantiation"
+            "description": "European Union sustainability regulations focusing on green claims substantiation",
+            "enforcement_focus": "Mandatory substantiation, corporate transparency, taxonomy alignment"
         },
         "USA": {
             "regulations": "FTC Green Guides, SEC Climate Disclosure Rules, EPA Green Power Partnership", 
-            "description": "US federal guidance and rules for environmental marketing claims"
+            "description": "US federal guidance and rules for environmental marketing claims",
+            "enforcement_focus": "Truthful advertising, climate risk disclosure, renewable energy verification"
         },
         "UK": {
             "regulations": "CMA Green Claims Code, FCA Sustainability Disclosure Requirements, ASA CAP Code",
-            "description": "UK-specific guidance for environmental claims and financial sustainability disclosures"
+            "description": "UK-specific guidance for environmental claims and financial sustainability disclosures",
+            "enforcement_focus": "Consumer protection, financial product sustainability, advertising standards"
         },
         "Global": {
             "regulations": "ISO 14021, GRI Standards, TCFD Recommendations, ISSB Standards",
-            "description": "International standards and frameworks for sustainability communication"
+            "description": "International standards and frameworks for sustainability communication",
+            "enforcement_focus": "Voluntary compliance, standardized reporting, best practice adoption"
         }
     }
     return frameworks.get(region, frameworks["Global"])
 
 # ============================================================================
-# MODIFIED CALLBACK SYSTEM
+# CLEAN TRAINING EXECUTION (NO LOG PARSING)
 # ============================================================================
 
-class APICallbackHandler:
-    """Callback handler that updates session instead of Panel"""
-    
-    def __init__(self, session_id: str):
-        self.session_id = session_id
-        self.task_count = 0
-        self.completed_tasks = 0
-    
-    def on_task_start(self, agent_name: str, task_description: str):
-        """Called when a task starts"""
-        self.task_count += 1
-        progress = min(20 + (self.completed_tasks * 20), 80)
-        
-        update_session_progress(
-            self.session_id,
-            progress,
-            f"Task {self.task_count}/4: {agent_name} working...",
-            agent_name,
-            task_description[:100] + "..." if len(task_description) > 100 else task_description
-        )
-    
-    def on_task_complete(self, agent_name: str, task_output: str):
-        """Called when a task completes"""
-        self.completed_tasks += 1
-        progress = min(20 + (self.completed_tasks * 20), 95)
-        
-        update_session_progress(
-            self.session_id,
-            progress,
-            f"Completed: {agent_name}",
-            agent_name,
-            "Task completed successfully"
-        )
-
-# ============================================================================
-# TRAINING EXECUTION
-# ============================================================================
-
-def run_training_session(session_id: str, training_request: TrainingRequest):
-    """Run the actual training session"""
+def run_clean_training_session(session_id: str, training_request: TrainingRequest):
+    """Run training session with direct artifact generation"""
     try:
-        # Update session status
-        update_session_progress(session_id, 5, "Initializing AI agents...", "System")
+        print(f"🚀 Starting clean training session: {session_id}")
+        
+        # Get session info
+        session = sessions[session_id]
+        artifact_dir = Path(session["artifact_directory"])
+        
+        update_session_progress(session_id, 5, "Preparing training inputs...")
         
         # Get regulatory details
         regulatory_details = get_regulatory_details(training_request.regulatory_framework)
@@ -251,154 +210,68 @@ def run_training_session(session_id: str, training_request: TrainingRequest):
             'regulatory_region': training_request.regulatory_framework,
             'regional_regulations': regulatory_details['regulations'],
             'regulatory_description': regulatory_details['description'],
+            'enforcement_focus': regulatory_details['enforcement_focus'],
             'current_year': str(datetime.now().year),
-            'session_id': session_id
+            'session_id': session_id,
+            'training_level': training_request.training_level,
+            'artifact_directory': str(artifact_dir)
         }
         
-        update_session_progress(session_id, 10, "Starting training crew...", "System")
+        update_session_progress(session_id, 10, "Creating AI crew...")
         
-        # Create callback handler for this session
-        callback_handler = APICallbackHandler(session_id)
-        
-        # Create and run crew
-        sustainability_crew = Sustainability()
+        # Create sustainability crew
+        sustainability_crew = Sustainability(session_id=session_id, artifact_directory=str(artifact_dir))
         crew = sustainability_crew.crew()
         
-        update_session_progress(session_id, 15, "AI agents collaborating...", "System")
+        update_session_progress(session_id, 20, "AI agents starting work...")
         
-        # Run the training
+        # Run the training - agents will write artifacts directly
         result = crew.kickoff(inputs=inputs)
         
-        # Generate markdown file
-        update_session_progress(session_id, 90, "Generating playbook file...", "System")
+        update_session_progress(session_id, 80, "Validating generated artifacts...")
         
-        # Create outputs directory if needed
-        outputs_dir = Path("outputs")
-        outputs_dir.mkdir(exist_ok=True)
+        # Validate all required artifacts exist
+        required_artifacts = ['scenario.json', 'problems.json', 'corrections.json', 'implementation.json']
+        missing_artifacts = []
         
-        # Generate file
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"sustainability_playbook_{session_id[:8]}_{timestamp}.md"
-        file_path = outputs_dir / filename
+        for artifact in required_artifacts:
+            artifact_path = artifact_dir / artifact
+            if not artifact_path.exists():
+                missing_artifacts.append(artifact)
         
-        # Format and save playbook
-        if hasattr(result, 'tasks_output') and result.tasks_output:
-            final_task = result.tasks_output[-1]
-            if hasattr(final_task, 'pydantic') and final_task.pydantic:
-                markdown_content = format_playbook_as_markdown(final_task.pydantic.model_dump())
-                
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(markdown_content)
+        if missing_artifacts:
+            raise Exception(f"Missing required artifacts: {missing_artifacts}")
         
-        # Complete session
-        complete_session(session_id, result, str(file_path))
+        update_session_progress(session_id, 90, "Building comprehensive playbook...")
+        
+        # Build markdown from artifacts (will create new markdown_builder)
+        from sustainability.markdown_builder import build_playbook_from_artifacts
+        
+        playbook_file = artifact_dir / "playbook.md"
+        build_playbook_from_artifacts(
+            artifact_directory=str(artifact_dir),
+            output_file=str(playbook_file),
+            training_request=training_request.model_dump(),
+            session_id=session_id
+        )
+        
+        # Verify playbook was created
+        if not playbook_file.exists():
+            raise Exception("Failed to generate playbook.md")
+        
+        update_session_progress(session_id, 95, "Finalizing training session...")
+        
+        # Complete session successfully
+        complete_session(session_id=session_id, playbook_file=str(playbook_file))
+        
+        print(f"✅ Clean training session completed successfully!")
+        print(f"📄 Playbook: {playbook_file}")
+        print(f"📁 Artifacts: {artifact_dir}")
         
     except Exception as e:
         error_msg = f"Training failed: {str(e)}"
-        print(f"Error in session {session_id}: {error_msg}")
-        complete_session(session_id, None, None, error_msg)
-
-def format_playbook_as_markdown(data: Dict[str, Any]) -> str:
-    """Convert playbook data to markdown format"""
-    
-    playbook_title = data.get('playbook_title', 'Sustainability Messaging Playbook')
-    creation_date = data.get('creation_date', datetime.now().strftime('%Y-%m-%d'))
-    
-    content = f"""# {playbook_title}
-
-**Created:** {creation_date}  
-**Generated by:** Sustainability Training AI
-
----
-
-## Executive Summary
-
-{data.get('executive_summary', 'Comprehensive guide for creating compliant sustainability messaging.')}
-
----
-
-## 📋 Do's and Don'ts
-
-{format_list_items(data.get('dos_and_donts', []))}
-
----
-
-## 🚨 Greenwashing Patterns to Avoid
-
-{format_list_items(data.get('greenwashing_patterns', []))}
-
----
-
-## ✅ Quick Compliance Checklist
-
-{format_checklist(data.get('compliance_checklist', {}))}
-
----
-
-## 🔄 Claim-to-Proof Framework
-
-{format_framework(data.get('claim_to_proof_framework', {}))}
-
----
-
-## 📖 Case Studies
-
-{format_case_studies(data.get('case_study_snapshots', []))}
-
----
-
-## 📄 Regulatory References
-
-{format_list_items(data.get('regulatory_references', []))}
-
----
-
-*Generated by Sustainability Training AI on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*
-"""
-    
-    return content
-
-def format_list_items(items: list) -> str:
-    """Format list items as markdown"""
-    if not items:
-        return "*No items available*"
-    return "\n".join([f"• {item}" for item in items])
-
-def format_checklist(checklist: dict) -> str:
-    """Format checklist as markdown"""
-    if not checklist:
-        return "*Checklist not available*"
-    
-    content = f"### {checklist.get('checklist_name', 'Compliance Checklist')}\n\n"
-    content += f"**Questions to Ask:**\n{format_list_items(checklist.get('questions', []))}\n\n"
-    content += f"**Red Flags:**\n{format_list_items(checklist.get('red_flags', []))}\n"
-    
-    return content
-
-def format_framework(framework: dict) -> str:
-    """Format framework as markdown"""
-    if not framework:
-        return "*Framework not available*"
-    
-    content = f"### {framework.get('framework_name', 'Validation Framework')}\n\n"
-    content += f"**Steps:**\n{format_list_items(framework.get('steps', []))}\n\n"
-    content += f"**Validation Questions:**\n{format_list_items(framework.get('validation_questions', []))}\n"
-    
-    return content
-
-def format_case_studies(case_studies: list) -> str:
-    """Format case studies as markdown"""
-    if not case_studies:
-        return "*No case studies available*"
-    
-    content = ""
-    for i, case in enumerate(case_studies, 1):
-        content += f"### Case Study {i}: {case.get('title', 'Untitled')}\n\n"
-        content += f"**Message:** {case.get('original_message', 'N/A')}\n\n"
-        content += f"**Analysis:** {case.get('analysis', 'N/A')}\n\n"
-        content += f"**Key Lesson:** {case.get('key_lesson', 'N/A')}\n\n---\n\n"
-    
-    return content
+        print(f"❌ Clean session error {session_id}: {error_msg}")
+        complete_session(session_id=session_id, error=error_msg)
 
 # ============================================================================
 # API ENDPOINTS
@@ -407,11 +280,16 @@ def format_case_studies(case_studies: list) -> str:
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
-    return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+    return {
+        "status": "healthy",
+        "version": "2.0.0 Clean Architecture",
+        "features": ["direct_artifact_generation", "fail_fast_validation", "rich_content"],
+        "timestamp": datetime.now().isoformat()
+    }
 
 @app.post("/api/training/start", response_model=TrainingResponse)
 async def start_training(request: TrainingRequest, background_tasks: BackgroundTasks):
-    """Start a new training session"""
+    """Start a new clean training session"""
     
     # Clean up old sessions
     cleanup_old_sessions()
@@ -424,12 +302,12 @@ async def start_training(request: TrainingRequest, background_tasks: BackgroundT
     session_id = create_session(request)
     
     # Start training in background
-    background_tasks.add_task(run_training_session, session_id, request)
+    background_tasks.add_task(run_clean_training_session, session_id, request)
     
     return TrainingResponse(
         session_id=session_id,
         status="started",
-        message="Training session started successfully"
+        message="Clean training session started with direct artifact generation"
     )
 
 @app.get("/api/training/status/{session_id}", response_model=StatusResponse)
@@ -463,25 +341,31 @@ async def download_playbook(session_id: str):
     if session["status"] != "completed":
         raise HTTPException(status_code=400, detail="Training not completed yet")
     
-    if not session["file_path"] or not os.path.exists(session["file_path"]):
+    if not session["playbook_file"] or not os.path.exists(session["playbook_file"]):
         raise HTTPException(status_code=404, detail="Playbook file not found")
     
-    file_path = session["file_path"]
+    file_path = session["playbook_file"]
     filename = os.path.basename(file_path)
     
-    # Return file and schedule cleanup
-    def cleanup_file():
+    # Schedule cleanup after download
+    def cleanup_session():
         try:
-            os.remove(file_path)
+            artifact_dir = Path(session["artifact_directory"])
+            if artifact_dir.exists():
+                for file in artifact_dir.glob("*"):
+                    file.unlink()
+                artifact_dir.rmdir()
+            
             if session_id in sessions:
                 del sessions[session_id]
+            
             print(f"Cleaned up session {session_id} after download")
-        except:
-            pass
+        except Exception as e:
+            print(f"Cleanup error: {e}")
     
-    # Schedule cleanup after response
+    # Schedule cleanup
     import threading
-    threading.Timer(1.0, cleanup_file).start()
+    threading.Timer(1.0, cleanup_session).start()
     
     return FileResponse(
         file_path,
@@ -498,9 +382,50 @@ async def list_active_sessions():
         "sessions": {sid: {
             "status": session["status"],
             "progress": session["progress"],
-            "created_at": session["created_at"].isoformat()
+            "created_at": session["created_at"].isoformat(),
+            "artifact_directory": session.get("artifact_directory")
         } for sid, session in sessions.items()}
     }
+
+@app.get("/api/training/artifacts/{session_id}")
+async def get_session_artifacts(session_id: str):
+    """Debug endpoint to inspect session artifacts"""
+    
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    session = sessions[session_id]
+    artifact_dir = Path(session["artifact_directory"])
+    
+    artifacts_info = {
+        "session_id": session_id,
+        "artifact_directory": str(artifact_dir),
+        "artifacts": {}
+    }
+    
+    if artifact_dir.exists():
+        for artifact_file in artifact_dir.glob("*.json"):
+            try:
+                artifacts_info["artifacts"][artifact_file.name] = {
+                    "exists": True,
+                    "size": artifact_file.stat().st_size,
+                    "modified": artifact_file.stat().st_mtime
+                }
+            except Exception as e:
+                artifacts_info["artifacts"][artifact_file.name] = {
+                    "exists": False,
+                    "error": str(e)
+                }
+        
+        # Check for playbook
+        playbook_file = artifact_dir / "playbook.md"
+        if playbook_file.exists():
+            artifacts_info["playbook"] = {
+                "exists": True,
+                "size": playbook_file.stat().st_size
+            }
+    
+    return artifacts_info
 
 # ============================================================================
 # SERVER STARTUP
@@ -509,7 +434,8 @@ async def list_active_sessions():
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 8000))
     
-    print("🌱 Starting Sustainability Training API...")
+    print("🌱 Starting Clean Sustainability Training API v2.0...")
+    print("🔧 Features: Direct artifact generation, Fail-fast validation, Rich content")
     print(f"🔗 Server will run on: http://localhost:{port}")
     print(f"📚 API docs available at: http://localhost:{port}/docs")
     
@@ -517,7 +443,7 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=port,
-        reload=True if not os.getenv("PORT") else False,  # Only reload in development
+        reload=True if not os.getenv("PORT") else False,
         log_level="info",
         ws="none"
     )

@@ -2,110 +2,168 @@ scenario_creation_task:
   description: >
     Create a comprehensive and realistic business scenario for sustainability messaging training based on the user's
     profile, industry focus, and regional regulatory context. Search extensively for current sustainability trends and 
-    real company examples in {user_industry} to make the scenario authentic and timely. The scenario must include: 
-    detailed company background with specific size and location, comprehensive product/service details with sustainability
-    implications, clearly defined target audience demographics and psychographics, specific marketing objectives with
-    measurable goals, preliminary sustainability claims the company wants to communicate with context, current sustainability
-    practices and challenges faced, competitive landscape analysis, and comprehensive regulatory context specific to 
-    {regulatory_region}. Focus on real regulatory challenges and enforcement patterns specific to {regulatory_region}.
-    Ensure all details are interconnected and create a cohesive business context that will inform all subsequent tasks.
-    The scenario should be rich enough to support detailed problematic message analysis and corrections.
+    real company examples in {user_industry} to make the scenario authentic and timely. 
+    
+    YOU MUST OUTPUT YOUR RESPONSE AS VALID JSON with this exact structure:
+    {{
+      "company_name": "specific company name",
+      "industry": "{user_industry}",
+      "company_size": "specific size (e.g., 'Medium (200-300 employees)')",
+      "location": "specific city and country",
+      "product_service": "detailed description of products/services with sustainability implications",
+      "target_audience": "detailed demographics and psychographics", 
+      "marketing_objectives": ["objective 1", "objective 2", "objective 3", "objective 4", "objective 5"],
+      "sustainability_context": "current sustainability challenges and context",
+      "preliminary_claims": ["claim 1", "claim 2", "claim 3", "claim 4"],
+      "regulatory_context": "detailed regulatory context for {regulatory_region}",
+      "competitive_landscape": "analysis of competitors and positioning",
+      "current_practices": ["practice 1", "practice 2", "practice 3"],
+      "challenges_faced": ["challenge 1", "challenge 2", "challenge 3"],
+      "market_research_sources": ["source 1", "source 2", "source 3"]
+    }}
+    
+    CRITICAL: Output ONLY the JSON object, no additional text. Ensure all fields are populated with specific,
+    realistic content based on your research. Marketing objectives must have at least 5 items.
   expected_output: >
-    A comprehensive and detailed business scenario including: complete company profile with name, industry classification,
-    size, location, and background; detailed product/service description with sustainability angles; comprehensive target
-    market analysis with demographics and sustainability motivations; specific marketing goals with measurable objectives;
-    preliminary sustainability claims with context and rationale; current practices and implementation challenges;
-    competitive positioning and differentiation; detailed regulatory context specific to {regulatory_region} including
-    key requirements and enforcement trends. Base the scenario on current market trends and real examples found through
-    comprehensive research. Ensure all elements are interconnected and provide rich context for subsequent analysis.
+    A single JSON object containing complete business scenario data with all required fields populated.
+    Must include specific company details, at least 5 marketing objectives, 4 preliminary claims,
+    and comprehensive regulatory context for {regulatory_region}. No additional text outside the JSON.
   agent: scenario_builder
 
 mistake_generation_task:
   description: >
-    Based on the detailed scenario provided, conduct comprehensive research to find real examples of problematic sustainability 
-    messages and greenwashing cases in similar industries within the {regulatory_region} regulatory framework. Create 4-5 
-    detailed problematic sustainability messages that contain common greenwashing issues found in current market examples 
-    specific to {regulatory_region} enforcement patterns. Each problematic message must reference the specific business scenario
-    and be contextually relevant to the company created in the previous task. For each problematic example, provide comprehensive
-    analysis explaining specifically WHY it's problematic under {regional_regulations}, what specific current regulations it 
-    violates with citations, what greenwashing patterns it demonstrates with examples, real-world companies that made similar
-    mistakes with outcomes, detailed consequences both legal and reputational, and context-specific issues related to the
-    scenario company. Focus on real-world mistakes like vague claims, unsubstantiated superlatives, misleading scope, 
-    future commitments without accountability, and shifting responsibility to consumers. Use recent case studies and 
-    regulatory examples from {regulatory_region} with specific enforcement actions and penalties.
+    Based on the business scenario created in the previous task, research real examples of problematic 
+    sustainability messages and greenwashing cases in {regulatory_region}. Create exactly 4 detailed 
+    problematic sustainability messages that are contextually relevant to the scenario company.
+    
+    YOU MUST OUTPUT YOUR RESPONSE AS VALID JSON with this exact structure:
+    {{
+      "scenario_reference": "brief reference to the company from previous task",
+      "problematic_messages": [
+        {{
+          "id": "msg1",
+          "message": "the problematic sustainability message text",
+          "problems_identified": ["problem 1", "problem 2", "problem 3"],
+          "regulatory_violations": ["violation 1", "violation 2"],
+          "greenwashing_patterns": ["pattern 1", "pattern 2"],
+          "real_world_examples": ["example 1", "example 2"],
+          "why_problematic": "detailed explanation of why this message is problematic",
+          "potential_consequences": ["consequence 1", "consequence 2"],
+          "context_specific_issues": "issues specific to the scenario company",
+          "alternative_approaches": ["approach 1", "approach 2"]
+        }},
+        ... (repeat for msg2, msg3, msg4)
+      ],
+      "general_patterns_found": ["pattern 1", "pattern 2", "pattern 3"],
+      "regulatory_landscape": "overview of {regulatory_region} regulations",
+      "research_sources": ["source 1", "source 2", "source 3"],
+      "industry_specific_insights": "insights specific to {user_industry}",
+      "enforcement_trends": ["trend 1", "trend 2", "trend 3"]
+    }}
+    
+    CRITICAL: Output ONLY the JSON object, no additional text. Must include exactly 4 problematic messages
+    (msg1, msg2, msg3, msg4) with all required fields populated for each message.
   expected_output: >
-    A comprehensive analysis containing 4-5 detailed problematic sustainability messages that are contextually relevant to 
-    the business scenario, with each message including: the complete problematic statement, detailed problems identification
-    with regulatory context, specific regulatory violations under {regional_regulations} with citations, comprehensive
-    greenwashing patterns analysis with examples, real-world companies that made similar mistakes with documented outcomes,
-    detailed explanation of why each message is problematic with legal and business implications, potential consequences
-    including specific penalties and reputational damage, context-specific issues for the scenario company, and initial
-    suggestions for improvement. Include comprehensive analysis of general patterns found, detailed regulatory landscape
-    overview for {regulatory_region}, current enforcement trends with examples, industry-specific insights, and extensive
-    research sources with credible references to current {regulatory_region} directives, recent enforcement cases, and
-    industry guidelines.
+    A single JSON object containing exactly 4 problematic sustainability messages with complete analysis
+    for each message including regulatory violations, real-world examples, and context-specific issues.
+    No additional text outside the JSON.
   agent: mistake_illustrator
   context:
     - scenario_creation_task
 
 best_practice_transformation_task:
   description: >
-    Transform each problematic message from the previous task into compliant, effective alternatives by conducting extensive
-    research on current best practices and successful sustainability communications examples within the {regulatory_region} 
-    regulatory framework. Search comprehensively for companies that have done sustainability messaging exceptionally well in 
-    similar contexts under {regional_regulations}. For each problematic message, provide specific, detailed improvements that
-    directly address the identified issues while maintaining marketing impact and ensuring full compliance with {regulatory_region} 
-    standards. Each correction must reference the original problematic message by ID and demonstrate clear understanding of the
-    business scenario context. Provide comprehensive explanations of changes made, detailed compliance notes referencing current
-    best practices, recent regulatory updates, and industry standards that support the revised messaging in {regulatory_region}.
-    Include evidence requirements, monitoring suggestions, implementation guidance, and success metrics for each correction.
-    Develop comprehensive general guidelines, key principles, regulatory compliance tips, and detailed industry-specific advice
-    tailored to the scenario company. Create implementation roadmaps and success measurement frameworks.
+    Transform each of the 4 problematic messages from the previous task into compliant, effective alternatives
+    by researching current best practices and successful sustainability communications in {regulatory_region}.
+    
+    YOU MUST OUTPUT YOUR RESPONSE AS VALID JSON with this exact structure:
+    {{
+      "scenario_reference": "brief reference to the company from scenario task",
+      "corrected_messages": [
+        {{
+          "original_message_id": "msg1",
+          "corrected_message": "the improved, compliant message text",
+          "changes_made": ["change 1", "change 2", "change 3"],
+          "compliance_notes": "how this message ensures regulatory compliance",
+          "best_practices_applied": ["practice 1", "practice 2"],
+          "real_world_examples": ["company example 1", "company example 2"],
+          "effectiveness_rationale": "why this corrected message is effective",
+          "evidence_required": ["evidence 1", "evidence 2"],
+          "monitoring_suggestions": ["monitoring 1", "monitoring 2"]
+        }},
+        ... (repeat for msg2, msg3, msg4)
+      ],
+      "general_guidelines": ["guideline 1", "guideline 2", "guideline 3"],
+      "key_principles": ["principle 1", "principle 2", "principle 3"],
+      "regulatory_compliance_tips": ["tip 1", "tip 2", "tip 3"],
+      "industry_specific_advice": "advice specific to {user_industry}",
+      "research_sources": ["source 1", "source 2", "source 3"]
+    }}
+    
+    CRITICAL: Output ONLY the JSON object, no additional text. Must include exactly 4 corrected messages
+    corresponding to msg1, msg2, msg3, msg4 with all required fields populated.
   expected_output: >
-    For each problematic message, provide: the completely revised compliant version based on current {regulatory_region} 
-    best practices with full context to the business scenario, comprehensive explanation of specific changes made with rationale,
-    detailed regulatory compliance notes for {regional_regulations} with specific citations, evidence requirements to support
-    claims with measurement criteria, monitoring and measurement suggestions with KPIs, best practices applied with examples,
-    real-world examples of companies using similar effective messaging with outcomes, detailed effectiveness rationale explaining
-    why the correction works in the market. Include comprehensive general guidelines for compliant messaging, key principles 
-    for effective sustainability communication, specific regulatory compliance tips for {regulatory_region}, detailed 
-    industry-specific advice tailored to the scenario, step-by-step implementation roadmap with timelines, success metrics
-    and measurement frameworks, and extensive research sources with references to successful real-world examples from 
-    {regulatory_region}. Ensure all corrections maintain marketing effectiveness while achieving full regulatory compliance.
+    A single JSON object containing exactly 4 corrected messages with detailed improvements, compliance
+    notes, and evidence requirements for each correction. No additional text outside the JSON.
   agent: best_practice_coach
   context:
     - scenario_creation_task
     - mistake_generation_task
 
-playbook_task:
+implementation_task:
   description: >
-    Create a comprehensive, practical sustainability messaging playbook based on all the training content and current 
-    communication best practices specific to {regulatory_region}. The playbook must serve as a complete, hands-on resource 
-    for marketing teams operating under {regional_regulations} to craft credible, compliant, and effective sustainability 
-    claims. Integrate all insights from the business scenario, problematic message analysis, and best practice corrections
-    into a cohesive, actionable guide. Include comprehensive do's and don'ts specific to {regulatory_region}, detailed 
-    greenwashing patterns to avoid under {regional_regulations}, step-by-step frameworks for transforming claims into 
-    impactful messages that comply with {regulatory_region} standards, comprehensive case study library with both good 
-    and bad examples from {regulatory_region}, detailed regulatory references specific to {regional_regulations}, practical
-    compliance checklists tailored to {regulatory_region} requirements, implementation guides with timelines, team training
-    resources, and troubleshooting guides. The playbook must be scenario-aware, referencing the specific business context
-    throughout, and provide practical tools that can be immediately implemented. Format sections for easy reference and
-    include comprehensive appendices with glossaries, contact resources, and additional learning materials.
+    Create a comprehensive implementation roadmap and success metrics framework based on all previous tasks.
+    Develop practical guidance that the scenario company can use to implement sustainable messaging practices.
+    
+    YOU MUST OUTPUT YOUR RESPONSE AS VALID JSON with this exact structure:
+    {{
+      "scenario_reference": "brief reference to the company from scenario task",
+      "implementation_roadmap": [
+        "step 1: detailed implementation step",
+        "step 2: detailed implementation step", 
+        "step 3: detailed implementation step",
+        "step 4: detailed implementation step",
+        "step 5: detailed implementation step",
+        "step 6: detailed implementation step"
+      ],
+      "success_metrics": [
+        "metric 1: specific measurable outcome",
+        "metric 2: specific measurable outcome",
+        "metric 3: specific measurable outcome", 
+        "metric 4: specific measurable outcome",
+        "metric 5: specific measurable outcome"
+      ],
+      "timeline_milestones": [
+        "month 1: milestone description",
+        "month 3: milestone description",
+        "month 6: milestone description",
+        "month 12: milestone description"
+      ],
+      "team_training_requirements": [
+        "training requirement 1",
+        "training requirement 2", 
+        "training requirement 3"
+      ],
+      "tools_and_resources": [
+        "tool/resource 1",
+        "tool/resource 2",
+        "tool/resource 3"
+      ],
+      "risk_mitigation": [
+        "risk 1 and mitigation strategy",
+        "risk 2 and mitigation strategy",
+        "risk 3 and mitigation strategy"
+      ],
+      "industry_specific_considerations": "considerations specific to {user_industry}",
+      "regulatory_compliance_schedule": "schedule for ongoing compliance activities",
+      "budget_considerations": "estimated budget and resource requirements"
+    }}
+    
+    CRITICAL: Output ONLY the JSON object, no additional text. Must include at least 6 implementation
+    steps and 5 success metrics with specific, actionable content.
   expected_output: >
-    A complete, comprehensive sustainability messaging playbook including: detailed executive summary with key insights,
-    scenario-specific context referencing the business case throughout, comprehensive do's and don'ts of messaging 
-    specific to {regulatory_region} with examples, detailed greenwashing patterns under {regional_regulations} with 
-    recognition guides, comprehensive claim-to-proof framework tailored to {regulatory_region} requirements with 
-    step-by-step processes, validation questions, proof requirements, common pitfalls, and practical examples, detailed
-    compliance checklist for {regional_regulations} with categories, validation questions, red flags, approval criteria,
-    escalation procedures, and review schedules, comprehensive case study library with real-world examples from 
-    {regulatory_region} including analysis, outcomes, and lessons learned, complete regulatory references with current
-    {regulatory_region} regulations and enforcement guidance, practical implementation roadmap with timelines and
-    milestones, team training and education resources with workshop guides, success stories and common implementation
-    mistakes, comprehensive appendices including glossary, contact resources, additional learning materials, and
-    troubleshooting guides. Structure the output for immediate practical use by marketing teams, with clear navigation,
-    quick reference sections, and actionable frameworks that can be directly implemented to ensure regulatory compliance
-    while maintaining marketing effectiveness.
+    A single JSON object containing comprehensive implementation guidance with at least 6 roadmap steps,
+    5 success metrics, timeline milestones, and practical considerations. No additional text outside the JSON.
   agent: playbook_creator
   context:
     - scenario_creation_task

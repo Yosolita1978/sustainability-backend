@@ -1,0 +1,39 @@
+{
+  "company_name": "Autodesk Inc",
+  "industry": "Technology",
+  "company_size": "Large (over 10,000 employees)",
+  "location": "San Rafael, California, USA",
+  "product_service": "Autodesk provides software for architecture, engineering, construction, manufacturing, media, and entertainment industries, focusing on creating tools that promote sustainability through efficient design and reduced resource use.",
+  "target_audience": "Technology companies, architects, engineers, construction firms, manufacturers, and digital media designers focused on innovative and sustainable design practices.",
+  "marketing_objectives": [
+    "Increase awareness of Autodesk's sustainability-driven design software.",
+    "Promote Autodesk's role in supporting the circular economy with its products.",
+    "Educate customers on the carbon-neutral features offered by Autodesk tools.",
+    "Expand market share in sectors prioritizing sustainability.",
+    "Enhance Autodesk's brand perception as a leader in sustainable technology solutions."
+  ],
+  "sustainability_context": "Autodesk is committed to sustainability by powering its facilities and cloud services with 100% renewable energy and neutralizing GHG emissions. The company is pivotal in providing tools that allow industries to design sustainably and promote the integration of AI for efficient resource use.",
+  "preliminary_claims": [
+    "Autodesk powers all operations with 100% renewable energy.",
+    "The company offers carbon-neutral design solutions.",
+    "Autodesk products support circular economy principles.",
+    "We're industry leaders in sustainable digital design tools."
+  ],
+  "regulatory_context": "Under EU regulations, Autodesk adheres to the Digital Services Act (DSA) which enforces accountability for digital platforms, and the EU Taxonomy for sustainable activities, which demands transparency in environmental impacts of technologies.",
+  "competitive_landscape": "Competitors in the space include Siemens and IBM, who are also focusing on sustainable technologies. Autodesk differentiates itself with comprehensive industry-specific software and a strong commitment to renewable operations.",
+  "current_practices": [
+    "Using AI to optimize resource efficiency in design.",
+    "Leveraging cloud-based solutions to reduce resource waste.",
+    "Implementing a transparent reporting system for sustainability impacts."
+  ],
+  "challenges_faced": [
+    "Integrating sustainability without increasing costs.",
+    "Remaining compliant with rapidly evolving global regulations.",
+    "Meeting stakeholder demands for greater transparency in sustainability practices."
+  ],
+  "market_research_sources": [
+    "https://www.autodesk.com/sustainability/overview",
+    "https://sustainability.autodesk.com/",
+    "https://www.corporateknights.com/rankings/global-100-rankings/2023-global-100-most-sustainable-companies/"
+  ]
+}
