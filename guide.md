@@ -12,5 +12,11 @@ For testing the POST
 ```bash
 curl -X POST "http://localhost:8000/api/training/start" \
   -H "Content-Type: application/json" \
-  -d '{"industry_focus": "Pharmaceutical", "regulatory_framework": "EU", "training_level": "Begginer"}'
+  -d '{"industry_focus": "Agriculture", "regulatory_framework": "EU", "training_level": "Begginer"}'
+  ```
+
+```bash
+curl -X POST "http://localhost:8000/api/training/start" \
+  -H "Content-Type: application/json" \
+  -d '{"industry_focus": "Technology", "regulatory_framework": "EU", "training_level": "Intermediate"}'
   ```
